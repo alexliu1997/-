@@ -410,6 +410,21 @@ let pushT=null, LASTO=null, booting=false;
 function netFetch(url,opt){ const c=new AbortController(), tm=setTimeout(()=>c.abort(),10000); return fetch(url,Object.assign({signal:c.signal},opt||{})).then(r=>r.json()).finally(()=>clearTimeout(tm)) }
 const jget=q=>netFetch(API_URL+'?'+q);
 const jpost=b=>netFetch(API_URL,{method:'POST',body:JSON.stringify(b)});
+/* ---------- 答題紀錄：每題一筆，先存在本機，再批次傳到試算表 Answers 分頁（日後用來校準複習演算法） ---------- */
+const alogKey=()=>'vocab-alog-'+((P&&P.code)||'');
+let flushing=false;
+function logAnswer(r){
+  if(!cloud||!P||!P.code) return;
+  const k=alogKey(), q=load(k)||[]; q.push(r); save(k,q.slice(-1500));
+}
+function flushAnswers(){
+  if(!cloud||!P||!P.code||flushing) return;
+  const k=alogKey(), q=load(k)||[]; if(!q.length) return;
+  const batch=q.slice(0,300), code=P.code; flushing=true;
+  jpost({action:'answers',code,rows:batch}).then(r=>{
+    if(r&&r.ok){ const cur=load(k)||[], sent={}; batch.forEach(x=>sent[x[0]]=1); save(k,cur.filter(x=>!sent[x[0]])); }
+  }).catch(()=>{}).finally(()=>{ flushing=false });
+}
 function normData(o){ if(!o||!Array.isArray(o.sets)) return null; o.hw=o.hw||{}; o.seq=o.seq||1; return o }
 function schedulePush(){ if(!cloud||!P||!P.code) return; clearTimeout(pushT); pushT=setTimeout(pushProfile,2000) }
 function pushProfile(){ if(!cloud||!P||!P.code) return; jpost({action:'putProfile',code:P.code,ts:P.ts,json:JSON.stringify(P)}).catch(()=>{}) }
@@ -442,7 +457,7 @@ function boot(){
   const jobs=[cloudLoadData()];
   if(l) jobs.push(pullProfile());
   if(location.hash==='#teacher'&&T.secret) jobs.push(fetchReports().then(m=>{ uiFlag.msg=m }));
-  Promise.all(jobs.map(p=>p.catch(()=>{}))).then(()=>{ booting=false; if(P&&P.code) pushReport(); if(!(S&&view==='session')) render() });
+  Promise.all(jobs.map(p=>p.catch(()=>{}))).then(()=>{ booting=false; if(P&&P.code){ pushReport(); flushAnswers() } if(!(S&&view==='session')) render() });
 }
 loadProfile();
 let S=null;                // 目前的練習 session
@@ -571,7 +586,7 @@ function setEntry(){
   const e=S.queue[0];
   S.q=makeQ(e.id,e.kind==='practice'?'review':e.kind);
   S.phase=(e.kind==='new'&&e.first)?'intro':'ask';
-  S.last=null;
+  S.last=null; S.t0=Date.now();
   if(S.phase==='ask'&&S.q.type==='listen') setTimeout(()=>{ if(S&&S.phase==='ask'&&S.queue[0]===e) say(itemOf(e.id).w) },250);
 }
 function answer(correct,given){
@@ -581,6 +596,9 @@ function answer(correct,given){
     S.tot++; if(correct) S.ok++;
     if(!S.practice){
       const lg=S.scope?ulogOf(S.scope,t):logOf(t), g=correct?3:1;
+      const c0=P.cards[e.id], el=c0?Math.max(0,dnum(t)-dnum(c0.last)):-1;
+      logAnswer([Date.now().toString(36)+Math.random().toString(36).slice(2,6), Date.now(), e.id, e.kind==='new'?'new':'rev', S.q.type, correct?1:0,
+        el, c0?Math.round(c0.S*100)/100:0, c0?Math.round(retr(el,c0.S)*1000)/1000:0, Math.min(120,Math.round((Date.now()-(S.t0||Date.now()))/1000)), S.scope?'self':'hw']);
       if(e.kind==='new'){ learnNew(e.id,g,t); lg.nw++ } else { reviewCard(P.cards[e.id],g,t); lg.rv++ }
       lg.tot++; if(correct) lg.ok++;
       saveP();
@@ -600,7 +618,7 @@ function finish(){
     if(!lg.done&&!pl.rev.length&&!pl.nw.length){ lg.done=true; markDone(todayStr()) }
     saveP();
   }
-  pushReport();
+  pushReport(); flushAnswers();
   view='done';
 }
 
@@ -1288,7 +1306,7 @@ app.addEventListener('click',async e=>{
   else if(a==='reset'){ uiFlag.reset=true; render() }
   else if(a==='reset-no'){ uiFlag.reset=false; render() }
   else if(a==='reset-yes'){ const nick=P.nick, lv=P.level, rd=P.rest.days, code=P.code; P=newProfile(nick,lv,rd); if(code) P.code=code; saveP(); uiFlag={}; render() }
-  else if(a==='intro-go'){ S.phase='ask'; render(); if(S.q.type==='listen') say(itemOf(S.queue[0].id).w) }
+  else if(a==='intro-go'){ S.phase='ask'; S.t0=Date.now(); render(); if(S.q.type==='listen') say(itemOf(S.queue[0].id).w) }
   else if(a==='choose'){ const i=Number(b.dataset.i); answer(S.q.opts[i].ok,i); render(); say(itemOf(S.queue[0].id).w) }
   else if(a==='skip'){ answer(false,''); render() }
   else if(a==='next'){ nextEntry(); render() }
