@@ -128,6 +128,11 @@ td.num{ font-variant-numeric:tabular-nums }
 .themeseg button{ font:inherit; font-size:.85rem; font-weight:600; min-height:36px; min-width:52px; padding:0 .8em; border:0; border-radius:999px; background:transparent; color:var(--muted); cursor:pointer }
 .themeseg button[aria-pressed=true]{ background:var(--surface); color:var(--accent-text); box-shadow:0 1px 4px rgba(0,0,0,.18) }
 .toprow{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap }
+.dailybox{ border-top:1px solid var(--line); margin-top:14px; padding-top:14px }
+.stepper{ display:inline-flex; align-items:center; gap:6px; flex:none }
+.stepper b{ min-width:2.2em; text-align:center; font-size:1.4rem; font-variant-numeric:tabular-nums }
+.stepper button{ width:44px; height:44px; border-radius:50%; border:var(--bw) solid var(--line2); background:var(--surface); color:var(--fg); font:inherit; font-size:1.4rem; line-height:1; cursor:pointer }
+.stepper button:disabled{ opacity:.4; cursor:default }
 .toast{ min-height:1.4em; font-size:.9rem; color:var(--muted) }
 .blank{ display:inline-block; min-width:5.5em; border-bottom:3px solid var(--accent) }
 /* ---- 新版面元件 ---- */
@@ -361,12 +366,15 @@ function clozeOf(it){
   return m?m[0]:null;
 }
 function ulogOf(sid,t){ const k=sid+'|'+t; return P.ulog[k]||(P.ulog[k]={nw:0,rv:0,ok:0,tot:0}) }
+/* 每天新字數：學生自己調(P.daily)，複習上限照原本比例跟著算 */
+function quota(){ const L=LV[P.level], n=clamp(Math.round(Number(P.daily)||L.newPer),1,30); return {newPer:n, revCap:Math.max(3,Math.ceil(n*L.revCap/L.newPer))} }
+function rememberSet(id){ if(P.last!==id){ P.last=id; saveP() } }
 function planSet(s){
-  const t=todayStr(), L=LV[P.level], lg=ulogOf(s.id,t);
+  const t=todayStr(), Q=quota(), lg=ulogOf(s.id,t);
   const rt=x=>retr(dnum(t)-dnum(P.cards[x.id].last),P.cards[x.id].S);
   const due=s.items.filter(x=>P.cards[x.id]&&P.cards[x.id].due<=t).sort((a,b)=>rt(a)-rt(b));
-  return {rev:due.slice(0,Math.max(0,L.revCap-lg.rv)).map(x=>x.id),
-          nw:s.items.filter(x=>!P.cards[x.id]).slice(0,Math.max(0,L.newPer-lg.nw)).map(x=>x.id)};
+  return {rev:due.slice(0,Math.max(0,Q.revCap-lg.rv)).map(x=>x.id),
+          nw:s.items.filter(x=>!P.cards[x.id]).slice(0,Math.max(0,Q.newPer-lg.nw)).map(x=>x.id)};
 }
 function addItem(s,w,zh,ex){
   w=w.replace(/\s+/g,' ').trim(); zh=zh.trim(); ex=(ex||'').trim();
@@ -496,17 +504,18 @@ function hwSets(){
 }
 function hwItems(){ const seen=new Set(), out=[]; hwSets().forEach(s=>s.items.forEach(it=>{ if(!seen.has(it.id)){ seen.add(it.id); out.push(it) } })); return out }
 function planToday(){
-  const t=todayStr(), L=LV[P.level], lg=logOf(t), H=hwItems();
+  const t=todayStr(), Q=quota(), lg=logOf(t), H=hwItems();
   const due=H.filter(d=>P.cards[d.id]&&P.cards[d.id].due<=t)
     .sort((a,b)=>retr(dnum(t)-dnum(P.cards[a.id].last),P.cards[a.id].S)-retr(dnum(t)-dnum(P.cards[b.id].last),P.cards[b.id].S));
-  const rev=due.slice(0,Math.max(0,L.revCap-lg.rv)).map(d=>d.id);
+  const rev=due.slice(0,Math.max(0,Q.revCap-lg.rv)).map(d=>d.id);
   const fresh=H.filter(d=>!P.cards[d.id]).map(d=>d.id);
-  const nw=fresh.slice(0,Math.max(0,L.newPer-lg.nw));
+  const nw=fresh.slice(0,Math.max(0,Q.newPer-lg.nw));
   return {rev,nw,backlog:Math.max(0,due.length-rev.length)};
 }
 function ensureDone(){
   const t=todayStr(), lg=logOf(t), pl=planToday();
   if(isRest(t)) return;
+  if(lg.done && (pl.rev.length||pl.nw.length)){ lg.done=false; saveP() }   // 學生把每天字數調高，今天就多出任務
   if(!lg.done && pl.rev.length===0 && pl.nw.length===0 && hwItems().some(d=>P.cards[d.id])){ lg.done=true; markDone(t); saveP() }
 }
 
@@ -683,24 +692,36 @@ const setProg=s=>{ const n=s.items.length, l=s.items.filter(x=>P.cards[x.id]).le
 /* ---------- 畫面：首頁 ---------- */
 function viewHome(){
   ensureDone();
-  const t=todayStr(), lg=logOf(t), pl=planToday(), H=hwItems(), hs=hwSets();
-  const remain=pl.nw.length+pl.rev.length, done=!!lg.done, restToday=isRest(t), sc=streakCount();
-  const counts={new:0,learning:0,known:0}; H.forEach(d=>counts[stage(P.cards[d.id])]++);
-  const learned=H.length-counts.new, pct=H.length?Math.round(learned/H.length*100):0;
-  const tomorrow=H.filter(d=>P.cards[d.id]&&P.cards[d.id].due<=addDays(t,1)&&P.cards[d.id].due>t).length;
-  const title=!hs.length?'選一本單字本':hs.length===1?hs[0].name:hs[0].name+' 等 '+hs.length+' 本';
+  const t=todayStr(), lg=logOf(t), H=hwItems(), hs=hwSets(), restToday=isRest(t), sc=streakCount();
+  /* 沒有功課時，回到學生上次選的單字本；有功課以功課為主 */
+  const fs=(!H.length&&P.last)?findSet(P.last):null, free=!!(fs&&fs.items.length);
+  const items=free?fs.items:H, pl=free?planSet(fs):planToday();
+  const remain=pl.nw.length+pl.rev.length, done=free?false:!!lg.done;
+  const counts={new:0,learning:0,known:0}; items.forEach(d=>counts[stage(P.cards[d.id])]++);
+  const learned=items.length-counts.new, pct=items.length?Math.round(learned/items.length*100):0;
+  const tomorrow=items.filter(d=>P.cards[d.id]&&P.cards[d.id].due<=addDays(t,1)&&P.cards[d.id].due>t).length;
+  const title=free?fs.name:!hs.length?'選一本單字本':hs.length===1?hs[0].name:hs[0].name+' 等 '+hs.length+' 本';
   const card=`<div class="bcard">
     <button class="bc-main" data-a="books" aria-label="換一本單字本，看各本進度">
       <span class="bc-title">${esc(title)} ⇄</span>
-      <span class="stack" style="gap:8px"><span class="bc-meta">${H.length?`<span>已學 ${pct}%</span><span>${learned}/${H.length} 字</span>`:'<span>老師還沒有出功課，點這裡挑一本來練習</span>'}</span>
+      <span class="stack" style="gap:8px"><span class="bc-meta">${items.length?`<span>已學 ${pct}%</span><span>${learned}/${items.length} 字</span>`:'<span>老師還沒有出功課，點這裡挑一本來練習</span>'}</span>
         <span class="bar bc-bar" aria-hidden="true"><i style="width:${pct}%"></i></span></span>
     </button>
-    ${H.length?'<button class="bc-tag" data-a="browse">單字表</button>':''}
+    ${items.length?(free?`<button class="bc-tag" data-a="open-set" data-id="${fs.id}">單字表</button>`:'<button class="bc-tag" data-a="browse">單字表</button>'):''}
   </div>`;
   let status='', action='';
-  if(!H.length){
+  if(!items.length){
     status='<p class="status">今天沒有一定要背的字。</p>';
     action='<button class="btn go" data-a="books">選一本單字本</button>';
+  }else if(free){
+    const ul=ulogOf(fs.id,t);
+    if(remain){
+      status='<p class="note" style="text-align:center">自己選的單字本，不影響連續打卡天數。</p>';
+      action=`<button class="btn go" data-a="start-set" data-id="${fs.id}">${ul.nw+ul.rv?'繼續學習':'開始學習'}</button>`;
+    }else{
+      status='<p class="status">這本今天練完了 🎉'+(tomorrow?`　明天有 ${tomorrow} 個字要複習`:'')+'</p>';
+      action=learned?`<button class="btn go ghost" data-a="practice-set" data-id="${fs.id}">加強練習（不影響排程）</button>`:'';
+    }
   }else if(done){
     status='<p class="status">今天的單字背完了 🎉'+(tomorrow?`　明天有 ${tomorrow} 個字要複習`:'')+'</p>';
     action=learned?'<button class="btn go ghost" data-a="practice">加強練習（不影響排程）</button>':'';
@@ -711,13 +732,16 @@ function viewHome(){
     status=pl.backlog?`<p class="note" style="text-align:center">還有 ${pl.backlog} 個字待複習，會分到接下來幾天，不用一次補完。</p>`:'';
     action=`<button class="btn go" data-a="start">${lg.nw+lg.rv?'繼續學習':'開始學習'}</button>`;
   }
+  const q=quota();
+  const daily=`<div class="dailybox"><div class="row between"><span><b>每天新字</b><br><span class="note">複習最多 ${q.revCap} 個，會自動跟著調整</span></span>
+    <span class="stepper"><button type="button" data-a="daily" data-d="-1" aria-label="每天少背一個" ${q.newPer<=1?'disabled':''}>−</button><b aria-live="polite">${q.newPer}</b><button type="button" data-a="daily" data-d="1" aria-label="每天多背一個" ${q.newPer>=30?'disabled':''}>＋</button></span></div></div>`;
   return `<div class="wrap fluid"><div class="g2 home">
     <div class="col"><div class="hero"><p class="hello">${esc(P.nick)} 在每日單字學習</p>
       <div class="streakrow"><div class="bignum">${sc}<small>天</small></div><button class="pill-y" data-a="cal">打卡日曆 ›</button></div></div>
     ${card}</div>
     <div class="col task"><div class="sectitle">今日任務</div>
     <div class="nums"><div><b>${pl.nw.length}</b><span>新字</span></div><div><b>${pl.rev.length}</b><span>複習</span></div><div><b>${counts.new}</b><span>未學</span></div></div>
-    ${status}${action}</div>
+    ${status}${action}${daily}</div>
   </div></div>${tabbar('home')}`;
 }
 
@@ -1235,8 +1259,9 @@ app.addEventListener('click',async e=>{
   else if(a==='set-back'){ uiFlag={}; go(setFrom) }
   else if(a==='calday'){ uiFlag.cd=uiFlag.cd===b.dataset.d?null:b.dataset.d; render() }
   else if(a==='addbook'){ uiFlag.addbook=!uiFlag.addbook; render(); const i=app.querySelector('#setname'); if(i) i.focus() }
-  else if(a==='open-set'){ setFrom=(view==='books')?'books':(view==='home'||view==='me')?'home':setFrom; uiFlag={setId:b.dataset.id}; go('set') }
-  else if(a==='start-set'){ if(buildSession(false,b.dataset.id)) go('session') }
+  else if(a==='open-set'){ rememberSet(b.dataset.id); setFrom=(view==='books')?'books':(view==='home'||view==='me')?'home':setFrom; uiFlag={setId:b.dataset.id}; go('set') }
+  else if(a==='start-set'){ rememberSet(b.dataset.id); if(buildSession(false,b.dataset.id)) go('session') }
+  else if(a==='daily'){ P.daily=clamp(quota().newPer+Number(b.dataset.d),1,30); saveP(); render() }
   else if(a==='practice-set'){ if(buildSession(true,b.dataset.id)) go('session') }
   else if(a==='flip'){ uiFlag={setId:b.dataset.id,fi:0,ff:false}; go('flip') }
   else if(a==='flipcard'){ uiFlag.ff=!uiFlag.ff; render() }
