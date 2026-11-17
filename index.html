@@ -260,29 +260,8 @@ td.num{ font-variant-numeric:tabular-nums }
 (function(){
 'use strict';
 
-/* ---------- 單字資料 (Lesson 8, 單字 5–13) ----------
-   w 單字 / pos 詞性 / zh 中文 / kk KK 音標 / colloc 搭配 / ex 例句(自寫) / exzh 例句中譯 / blank 例句挖空處
-   kkCheck: 音標由截圖辨識，建議老師確認 */
-const LESSON8=[
- {id:'purchase-n',w:'purchase',pos:'n.',zh:'購買',kk:'ˋpɝtʃəs',colloc:'make a purchase of sth. 購買某物',ex:'I made a purchase at the bookstore yesterday.',exzh:'我昨天在書店買了東西。',blank:'purchase',kkCheck:true},
- {id:'profitable-adj',w:'profitable',pos:'adj.',zh:'有利潤的',kk:'ˋprɑfɪtəbḷ',colloc:'',ex:'Selling handmade soap turned out to be profitable.',exzh:'賣手工肥皂結果很賺錢。',blank:'profitable',kkCheck:true},
- {id:'profit-vi',w:'profit',pos:'vi.',zh:'獲得好處',kk:'ˋprɑfɪt',colloc:'profit from + N/V-ing 從……獲利',ex:'She profited from her uncle’s advice.',exzh:'她從叔叔的建議中受益。',blank:'profited'},
- {id:'profit-n',w:'profit',pos:'n.',zh:'利潤',kk:'ˋprɑfɪt',colloc:'make a profit 獲利',ex:'The shop made a small profit last month.',exzh:'這家店上個月賺了一點利潤。',blank:'profit'},
- {id:'similarly-adv',w:'similarly',pos:'adv.',zh:'同樣地',kk:'ˋsɪmələlɪ',colloc:'',ex:'The twins dress alike, and they speak similarly, too.',exzh:'雙胞胎穿得很像，說話方式也很相似。',blank:'similarly',kkCheck:true},
- {id:'similar-adj',w:'similar',pos:'adj.',zh:'相似的',kk:'ˋsɪmələ',colloc:'be similar in sth. 在某方面相似；A be similar to B  A 和 B 相似',ex:'The two houses are similar in size.',exzh:'這兩棟房子大小相似。',blank:'similar',kkCheck:true},
- {id:'similarity-n',w:'similarity',pos:'n.',zh:'相似性；相似處',kk:'ˌsɪməˋlærətɪ',colloc:'',ex:'There is a strong similarity between the two songs.',exzh:'這兩首歌有很高的相似度。',blank:'similarity'},
- {id:'aim-vt',w:'aim',pos:'vt.',zh:'針對；對象是',kk:'em',colloc:'sth. be aimed at sb. = aim sth. at sb. 將某人定為某事物的對象',ex:'The campaign is aimed at teenagers.',exzh:'這項活動的對象是青少年。',blank:'aimed'},
- {id:'aim-n',w:'aim',pos:'n.',zh:'目的；目標',kk:'em',colloc:'with the aim of V-ing 為了……',ex:'Her aim is to pass the exam.',exzh:'她的目標是通過考試。',blank:'aim'},
- {id:'impulse-n',w:'impulse',pos:'n.',zh:'衝動',kk:'ˋɪmpʌls',colloc:'on impulse 一時衝動；have an impulse to VR 一時衝動想做……',ex:'He bought the jacket on impulse.',exzh:'他一時衝動買了那件外套。',blank:'impulse'},
- {id:'display-vt',w:'display',pos:'vt.',zh:'展示；陳列',kk:'dɪˋsple',colloc:'',ex:'The museum displays old maps in the main hall.',exzh:'博物館在大廳展示古老的地圖。',blank:'displays'},
- {id:'display-n',w:'display',pos:'n.',zh:'展覽；陳列',kk:'dɪˋsple',colloc:'on display 展出；a display of sth. 展示某物',ex:'The new bikes are on display in the window.',exzh:'新腳踏車正陳列在櫥窗裡。',blank:'display'},
- {id:'offer-n',w:'offer',pos:'n.',zh:'特價',kk:'ˋɔfɚ',colloc:'',ex:'There is a special offer on shoes this week.',exzh:'這週鞋子有特價。',blank:'offer'},
- {id:'offer-vt',w:'offer',pos:'vt.',zh:'提供',kk:'ˋɔfɚ',colloc:'offer sth. to sb. = offer sb. sth. 提供某物給某人',ex:'The hotel offers free breakfast to all guests.',exzh:'這家旅館提供所有房客免費早餐。',blank:'offers'},
- {id:'customer-n',w:'customer',pos:'n.',zh:'顧客；客戶',kk:'ˋkʌstəmɚ',colloc:'',ex:'The customer asked for a bigger size.',exzh:'那位顧客要求大一點的尺寸。',blank:'customer'},
- {id:'advantage-n',w:'advantage',pos:'n.',zh:'優勢；有利條件',kk:'ədˋvæntɪdʒ',colloc:'',ex:'Being tall is an advantage in basketball.',exzh:'身高在籃球場上是一項優勢。',blank:'advantage'}
-];
-/* 官方單字本：內嵌在網頁裡的資料(老師頁按「發布」會更新)。hw = 功課，key 是學生代碼，'*' 代表全部學生 */
-const SEED={seq:1,sets:[{id:'o1',name:'Lesson 8　單字 5–13',items:LESSON8}],hw:{}};
+/* 官方單字本的資料存在 Google 試算表，網頁載入時從雲端讀。這裡只是還沒讀到(或離線)時的空白預設。 */
+const SEED={seq:1,sets:[],hw:{}};
 let EMBED=(function(){
   try{ const el=document.getElementById('offdata');
     if(el&&el.textContent.trim()){ const o=JSON.parse(el.textContent); if(o&&Array.isArray(o.sets)){ o.hw=o.hw||{}; o.seq=o.seq||1; return o } } }catch(e){}
@@ -1068,12 +1047,12 @@ function viewParent(){
   const ago=Math.round(dnum(t)-dnum(last.d));
   return `<div class="wrap fluid"><div class="hero"><div class="toprow"><h1 class="pgtitle">${esc(d.name||'孩子')} 的單字進度</h1>${themeSeg()}</div></div>
     <div class="g2 par"><div class="card idx stack"><div class="row between"><h2>今天</h2><span class="tag ${status[0]==='完成'?'known':status[0]==='還沒背'?'learning':''}">${status[0]}</span></div>
-      <p>${status[1]}</p><div class="nums"><div><b>${last.st}</b><span>連續天數</span></div><div><b>${last.hn?last.kn+'/'+last.hn:'—'}</b><span>功課熟悉</span></div><div><b>${sum('tot')?Math.round(sum('ok')/sum('tot')*100)+'%':'—'}</b><span>本週答對率</span></div></div>
+      <p>${status[1]}</p>${tr&&(tr.xn||tr.xr)?`<p class="note">今天另外自己練習了非作業單字：新字 ${tr.xn||0} 個、複習 ${tr.xr||0} 次。</p>`:''}<div class="nums"><div><b>${last.st}</b><span>連續天數</span></div><div><b>${last.hn?last.kn+'/'+last.hn:'—'}</b><span>功課熟悉</span></div><div><b>${sum('tot')?Math.round(sum('ok')/sum('tot')*100)+'%':'—'}</b><span>本週答對率</span></div></div>
       ${ago>0?`<p class="note">最近一次更新是 ${ago===1?'昨天':mmdd(last.d)}。</p>`:''}</div>
     <div class="card stack"><h2>最近 7 天</h2>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center">${days.map(x=>{ const m=mark(x); return `<div style="border:var(--bw) solid var(--line);border-radius:var(--radius);padding:.4em 0"><div class="note">${esc(mmdd(x))}<br>週${WD[wdayOf(x)]}</div><div style="font-size:1.3rem;font-weight:700" aria-label="${m[1]}">${m[0]}</div></div>` }).join('')}</div>
       <p class="note">✓ 完成　△ 練習了一部分　✗ 沒有背　休 休息日　— 沒功課</p>
-      <p class="note">這 7 天共背新字 ${sum('nw')} 個、複習 ${sum('rv')} 次。</p></div></div>
+      <p class="note">這 7 天共背新字 ${sum('nw')} 個、複習 ${sum('rv')} 次。</p>${sum('xn')||sum('xr')?`<p class="note">自己選的單字本（非作業）：新字 ${sum('xn')} 個、複習 ${sum('xr')} 次。</p>`:''}</div></div>
     <p class="note">此頁面僅供追蹤學習進度，無法編輯。進度會在孩子完成練習後更新。</p></div>`;
 }
 function pubCard(){
