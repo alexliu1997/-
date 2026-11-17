@@ -295,8 +295,8 @@ const allOff=()=>Object.values(BYID);
 function mut(fn){ if(OFF===EMBED){ T.draftBase=JSON.stringify(EMBED); OFF=JSON.parse(JSON.stringify(EMBED)) } fn(); T.draft=OFF; save(TKEY,T); idx() }
 const isDirty=()=>JSON.stringify(OFF)!==JSON.stringify(EMBED);
 const LV={
-  kid :{label:'國小',     newPer:3, revCap:8,  speed:0.8, types:['en2zh','zh2en','listen']},
-  teen:{label:'國中・高中', newPer:6, revCap:14, speed:0.9, types:['en2zh','listen','spell','cloze']}
+  kid :{label:'國小',     newPer:3, revCap:5, ratio:1.5,  speed:0.8, types:['en2zh','zh2en','listen']},
+  teen:{label:'國中・高中', newPer:6, revCap:12, ratio:2, speed:0.9, types:['en2zh','listen','spell','cloze']}
 };
 const MAXI=30;               // 複習間隔上限(天)
 const KEY='vocab-review-v1', TKEY='vocab-review-teacher-v1', DKEY='vocab-data-v1';
@@ -367,7 +367,7 @@ function clozeOf(it){
 }
 function ulogOf(sid,t){ const k=sid+'|'+t; return P.ulog[k]||(P.ulog[k]={nw:0,rv:0,ok:0,tot:0}) }
 /* 每天新字數：學生自己調(P.daily)，複習上限照原本比例跟著算 */
-function quota(){ const L=LV[P.level], n=clamp(Math.round(Number(P.daily)||L.newPer),1,30); return {newPer:n, revCap:Math.max(3,Math.ceil(n*L.revCap/L.newPer))} }
+function quota(){ const L=LV[P.level], n=clamp(Math.round(Number(P.daily)||L.newPer),1,30); return {newPer:n, revCap:Math.max(3,Math.ceil(n*L.ratio))} }
 function rememberSet(id){ if(P.last!==id){ P.last=id; saveP() } }
 function planSet(s){
   const t=todayStr(), Q=quota(), lg=ulogOf(s.id,t);
@@ -989,7 +989,8 @@ function makeReport(){
   const t=todayStr(), lg=logOf(t), H=hwItems(), known=H.filter(d=>stage(P.cards[d.id])==='known').length;
   const wk=H.filter(d=>P.cards[d.id]&&P.cards[d.id].wrong>0).sort((a,b)=>P.cards[b.id].wrong-P.cards[a.id].wrong).slice(0,5).map(d=>d.id);
   const mine=P.sets.flatMap(s=>s.items);
-  const o=LASTO={v:1,n:P.nick,c:P.code||'',d:t,nw:lg.nw,rv:lg.rv,ok:lg.ok,tot:lg.tot,st:streakCount(),kn:known,hn:H.length,wk,dn:!!lg.done,rd:P.rest.days,
+  let xn=0, xr=0; Object.keys(P.ulog).forEach(k=>{ if(k.endsWith('|'+t)){ xn+=P.ulog[k].nw||0; xr+=P.ulog[k].rv||0 } });   // 非作業（自選單字本）今天背的
+  const o=LASTO={xn,xr,v:1,n:P.nick,c:P.code||'',d:t,nw:lg.nw,rv:lg.rv,ok:lg.ok,tot:lg.tot,st:streakCount(),kn:known,hn:H.length,wk,dn:!!lg.done,rd:P.rest.days,
     uc:mine.length,us:P.sets.length,un:mine.slice(-10).map(x=>[x.w,x.zh])};
   const code='VR1:'+btoa(unescape(encodeURIComponent(JSON.stringify(o))));
   const text=`【單字回報】${P.nick}｜${mmdd(t)}\n新字 ${lg.nw}、複習 ${lg.rv}、答對 ${lg.ok}/${lg.tot}${lg.done?'（今日完成）':'（尚未完成）'}\n連續 ${streakCount()} 天｜熟悉 ${known}/${H.length}｜休息日 ${dayNames(P.rest.days)}${mine.length?`\n自建單字 ${mine.length} 個（${P.sets.length} 本）`:''}\n${code}`;
@@ -1176,8 +1177,8 @@ function viewTeacher(){
     <p class="note">學生按「回報給老師」複製的文字，貼在下面（可一次貼多位）。</p>
     <textarea id="paste" placeholder="貼上學生傳來的回報…" aria-label="貼上學生回報"></textarea>
     <div class="row">${cloud?'<button class="btn" data-a="greports">更新學生回報</button>':''}<button class="btn ${cloud?'ghost small':''}" data-a="import">${cloud?'手動貼上匯入':'匯入'}</button><span class="toast" id="toast" aria-live="polite">${uiFlag.msg||''}</span></div>
-    ${rows.length?`<div class="scroll"><table><thead><tr><th>暱稱</th><th>回報日</th><th>新字</th><th>複習</th><th>答對</th><th>連續</th><th>熟悉</th><th>休息日</th><th>自建</th><th>狀態</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td>${esc(r.name||r.n)}${r.name&&r.name!==r.n?` <span class="note">暱稱 ${esc(r.n)}</span>`:''}${r.c?` <span class="note">${esc(r.c)}</span>`:''}</td><td>${r.d===t?'今天':esc(mmdd(r.d))}</td><td class="num">${r.nw}</td><td class="num">${r.rv}</td><td class="num">${r.ok}/${r.tot}</td><td class="num">${r.st} 天</td><td class="num">${r.kn}/${r.hn!=null?r.hn:'—'}</td><td>${r.rd?esc(dayNames(r.rd)):'—'}</td><td class="num">${r.uc||0}</td><td>${r.d!==t?((r.rd||[]).includes(wdayOf(t))?'今天休息':'<span class="flag">今天未回報</span>'):(r.dn?'完成':((r.rd||[]).includes(wdayOf(t))?'今天休息':(r.hn===0?'沒有功課':'未完成')))}</td></tr>`).join('')}
+    ${rows.length?`<div class="scroll"><table><thead><tr><th>暱稱</th><th>回報日</th><th>新字</th><th>複習</th><th>答對</th><th>非作業</th><th>連續</th><th>熟悉</th><th>休息日</th><th>自建</th><th>狀態</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${esc(r.name||r.n)}${r.name&&r.name!==r.n?` <span class="note">暱稱 ${esc(r.n)}</span>`:''}${r.c?` <span class="note">${esc(r.c)}</span>`:''}</td><td>${r.d===t?'今天':esc(mmdd(r.d))}</td><td class="num">${r.nw}</td><td class="num">${r.rv}</td><td class="num">${r.ok}/${r.tot}</td><td class="num">${r.d===t?((r.xn||0)||(r.xr||0)?`新 ${r.xn||0}・複 ${r.xr||0}`:'0'):'—'}</td><td class="num">${r.st} 天</td><td class="num">${r.kn}/${r.hn!=null?r.hn:'—'}</td><td>${r.rd?esc(dayNames(r.rd)):'—'}</td><td class="num">${r.uc||0}</td><td>${r.d!==t?((r.rd||[]).includes(wdayOf(t))?'今天休息':'<span class="flag">今天未回報</span>'):(r.dn?'完成':((r.rd||[]).includes(wdayOf(t))?'今天休息':(r.hn===0?'沒有功課':'未完成')))}</td></tr>`).join('')}
     </tbody></table></div>`:'<p class="lead">還沒有回報。</p>'}
     ${weak.length?`<div><h2>最常答錯</h2><p>${weak.map(([id,n])=>`<b>${esc(BYID[id].w)}</b> <span class="note">${esc(BYID[id].pos||'')}・${n} 人</span>`).join('　')}</p></div>`:''}
     ${rows.some(r=>r.uc)?`<div><h2>學生自建的單字（最近新增）</h2><div class="stack" style="gap:6px;margin-top:6px">${rows.filter(r=>r.uc).map(r=>`<details><summary><b>${esc(r.n)}</b> <span class="note">${r.uc} 個・${r.us} 本</span></summary><p class="note" style="margin-top:6px">${(r.un||[]).map(x=>esc(x[0])+' '+esc(x[1])).join('、')}</p></details>`).join('')}</div></div>`:''}
