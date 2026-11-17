@@ -1,0 +1,1435 @@
+<title>每日單字</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style id="appcss">
+/* Layout: a narrow column of rounded white cards on a soft blue-gray page (modelled on the 扇貝 look).
+   Two looks share one set of tokens: [data-level="kid"] is rounder, larger, orange; teen is mint-green. */
+:root{
+  color-scheme:light;
+  --bg:#EEF2F7; --surface:#FFFFFF; --fg:#2A2F36; --muted:#5E6775; --line:#E1E6ED; --line2:#C9D1DC;
+  --accent:#0E8E75; --accent-text:#0B7763; --accent-ink:#FFFFFF; --accent-soft:#DDF3EB;
+  --grad:linear-gradient(100deg,#2FA570,#12A38C); --btn-shadow:rgba(18,163,140,.30);
+  --banner:linear-gradient(135deg,#2C6E73 0%,#1E8A78 60%,#34A27A 100%); --banner-fill:#8DEBC0;
+  --yellow:#FFD95A; --yellow-ink:#3B2F00; --sun:#FFD95A; --sun2:rgba(255,140,100,.45); --dot:#D5DCE7; --today:#DDE3EC;
+  --good:#217A49; --good-soft:#DDF1E5; --bad:#B23B3B; --bad-soft:#F7E0E0; --warn:#8A5A00; --warn-soft:#FBEFD2;
+  --radius:14px; --card-r:18px; --bw:1px; --fs:16px; --word:2.2rem; --pad:18px;
+  --shadow:0 2px 14px rgba(45,70,110,.08); --cardbd:transparent;
+  --ui:'Noto Sans','Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;
+}
+:root[data-level="kid"]{ --bg:#E8F2FB; --accent:#D9480F; --accent-text:#B33A06; --accent-soft:#FFE6D6;
+  --grad:linear-gradient(100deg,#E5701A,#D9480F); --btn-shadow:rgba(217,72,15,.30);
+  --banner:linear-gradient(135deg,#E5701A 0%,#D9480F 100%); --banner-fill:#FFE08A;
+  --radius:20px; --card-r:26px; --bw:2px; --fs:19px; --word:2.9rem; --pad:20px }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ color-scheme:dark; --bg:#0E1513; --surface:#17201E; --fg:#E7EDEA; --muted:#98A5A0; --line:#27332F; --line2:#3A4A45;
+    --accent:#4FD1B0; --accent-text:#74E0C5; --accent-ink:#06231C; --accent-soft:#1B3A33;
+    --grad:linear-gradient(100deg,#2A9467,#11877A); --btn-shadow:rgba(0,0,0,.35);
+    --banner:linear-gradient(135deg,#1F4C52 0%,#176A5C 60%,#23785A 100%); --banner-fill:#8DEBC0;
+    --sun:rgba(255,217,90,.75); --sun2:rgba(255,140,100,.4); --dot:#1F2B28; --today:#27332F;
+    --good:#6FD39A; --good-soft:#1B3326; --bad:#FF9494; --bad-soft:#3A2121; --warn:#F0C36A; --warn-soft:#3A2F14; --shadow:none; --cardbd:var(--line) }
+  :root:not([data-theme="light"])[data-level="kid"]{ --bg:#101923; --surface:#192431; --accent:#FF9A66; --accent-text:#FFB38A; --accent-ink:#2B1105; --accent-soft:#3B2418;
+    --grad:linear-gradient(100deg,#D96A1E,#B8420E); --banner:linear-gradient(135deg,#C2601A 0%,#9C3A0B 100%); --banner-fill:#FFD27A }
+}
+:root[data-theme="dark"]{ color-scheme:dark; --bg:#0E1513; --surface:#17201E; --fg:#E7EDEA; --muted:#98A5A0; --line:#27332F; --line2:#3A4A45;
+    --accent:#4FD1B0; --accent-text:#74E0C5; --accent-ink:#06231C; --accent-soft:#1B3A33;
+    --grad:linear-gradient(100deg,#2A9467,#11877A); --btn-shadow:rgba(0,0,0,.35);
+    --banner:linear-gradient(135deg,#1F4C52 0%,#176A5C 60%,#23785A 100%); --banner-fill:#8DEBC0;
+    --sun:rgba(255,217,90,.75); --sun2:rgba(255,140,100,.4); --dot:#1F2B28; --today:#27332F;
+    --good:#6FD39A; --good-soft:#1B3326; --bad:#FF9494; --bad-soft:#3A2121; --warn:#F0C36A; --warn-soft:#3A2F14; --shadow:none; --cardbd:var(--line) }
+:root[data-theme="dark"][data-level="kid"]{ --bg:#101923; --surface:#192431; --accent:#FF9A66; --accent-text:#FFB38A; --accent-ink:#2B1105; --accent-soft:#3B2418;
+    --grad:linear-gradient(100deg,#D96A1E,#B8420E); --banner:linear-gradient(135deg,#C2601A 0%,#9C3A0B 100%); --banner-fill:#FFD27A }
+
+html{ -webkit-text-size-adjust:100% }
+body{ margin:0; position:relative; background:var(--bg); color:var(--fg); font:var(--fs)/1.55 var(--ui); padding-block:20px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)) }
+body.hastab{ padding-bottom:calc(100px + env(safe-area-inset-bottom, 0px)) }
+/* 右上角黃色圓、左上角小圓點：只當裝飾，放在內容後面 */
+body.deco::before{ content:""; position:absolute; top:0; right:0; width:130px; height:170px; pointer-events:none; z-index:0;
+  background:radial-gradient(circle at calc(100% - 2px) 74px, var(--sun) 0 32px, transparent 33px), radial-gradient(circle at calc(100% - 38px) 112px, var(--sun2) 0 9px, transparent 10px) }
+body.deco::after{ content:""; position:absolute; top:22px; left:max(16px, env(safe-area-inset-left, 0px)); width:120px; height:30px; pointer-events:none; z-index:0;
+  background:radial-gradient(circle, var(--dot) 0 2.3px, transparent 2.9px) 0 0/10px 10px }
+
+*{ box-sizing:border-box }
+.wrap{ position:relative; z-index:1; max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:14px; min-width:0 }
+.wrap.wide{ max-width:980px }
+h1,h2,h3,p{ margin:0 }
+.title{ font-size:1.5rem; font-weight:700; letter-spacing:-.01em; text-wrap:balance }
+h2{ font-size:1.05rem; font-weight:700 }
+.lead,.note{ color:var(--muted) } .note{ font-size:.85rem }
+.stack{ display:flex; flex-direction:column; gap:12px }
+.row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+.between{ justify-content:space-between }
+.card{ background:var(--surface); border:1px solid var(--cardbd); border-radius:var(--card-r); box-shadow:var(--shadow); padding:var(--pad); min-width:0 }
+.btn{ font:inherit; font-weight:600; min-height:48px; padding:.7em 1.3em; border-radius:999px; border:var(--bw) solid transparent;
+  background:var(--grad); color:#fff; cursor:pointer; text-align:center }
+.btn.ghost{ background:transparent; color:var(--fg); border-color:var(--line2) }
+.btn.ghost.on{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent-text); font-weight:700 }
+.btn.soft{ background:var(--accent-soft); color:var(--accent-text) }
+.btn.outline{ background:transparent; color:var(--accent-text); border-color:var(--accent) }
+.btn.small{ min-height:38px; padding:.35em .8em; font-size:.9rem }
+.btn:disabled{ opacity:.5; cursor:default }
+.btn.block{ width:100% }
+:focus-visible{ outline:3px solid var(--accent); outline-offset:2px }
+input[type=text],input[type=password]{ font:inherit; width:100%; min-height:48px; padding:.5em .8em; border-radius:var(--radius); border:var(--bw) solid var(--line); background:var(--bg); color:var(--fg) }
+fieldset{ border:0; padding:0; margin:0; display:flex; gap:10px; flex-wrap:wrap }
+legend{ padding:0; margin-bottom:6px; font-weight:600 }
+.choice{ flex:1 1 140px } .choice input{ position:absolute; opacity:0 }
+.choice span{ display:block; padding:.7em .9em; border:var(--bw) solid var(--line); border-radius:var(--radius); text-align:center; cursor:pointer }
+.choice input:checked + span{ border-color:var(--accent); background:var(--accent-soft); font-weight:700 }
+.choice input:focus-visible + span{ outline:3px solid var(--accent); outline-offset:2px }
+label{ font-weight:600 }
+
+.word{ font-size:var(--word); font-weight:700; letter-spacing:-.015em; line-height:1.1; overflow-wrap:anywhere }
+.kk{ color:var(--muted); font-size:1.1rem }
+.pos{ display:inline-block; font-size:.78rem; font-weight:700; padding:.1em .65em; border-radius:99px; background:var(--accent-soft) }
+.zh{ font-weight:600; font-size:1.15rem }
+.ex{ border-left:3px solid var(--line); padding-left:12px; display:flex; flex-direction:column; gap:2px }
+.ex .en{ font-size:1.02rem } .ex .cn{ color:var(--muted); font-size:.92rem }
+.colloc{ background:var(--accent-soft); border-radius:calc(var(--radius) - 4px); padding:.55em .8em; font-size:.95rem }
+.spk{ display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:50%; border:var(--bw) solid var(--line);
+  background:var(--surface); color:var(--fg); cursor:pointer; flex:none }
+.spk.big{ width:84px; height:84px }
+.spk.big svg{ width:38px; height:38px }
+
+.opts{ display:flex; flex-direction:column; gap:10px }
+.opt{ font:inherit; text-align:left; width:100%; min-height:52px; padding:.7em 1em; border-radius:var(--radius); border:var(--bw) solid var(--line);
+  background:var(--surface); color:var(--fg); cursor:pointer }
+.opt:hover:not(:disabled){ border-color:var(--accent) }
+.opt.right{ background:var(--good-soft); border-color:var(--good) } .opt.wrong{ background:var(--bad-soft); border-color:var(--bad) }
+.banner{ padding:.6em .9em; border-radius:calc(var(--radius) - 2px); font-weight:700 }
+.banner.ok{ background:var(--good-soft); color:var(--good) } .banner.no{ background:var(--bad-soft); color:var(--bad) }
+.bar{ height:8px; border-radius:99px; background:var(--line); overflow:hidden } .bar > i{ display:block; height:100%; background:var(--accent); width:0; transition:width .25s }
+.days{ display:flex; gap:6px; flex-wrap:wrap } .days label{ position:relative } .days input{ position:absolute; opacity:0 }
+.days span,.days button{ display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; padding:0 .5em; border:var(--bw) solid var(--line);
+  border-radius:var(--radius); background:var(--surface); color:var(--fg); font:inherit; font-weight:600; cursor:pointer }
+.days input:checked + span,.days button.on{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent) }
+.days input:focus-visible + span{ outline:3px solid var(--accent); outline-offset:2px }
+.stat{ display:flex; flex-direction:column } .stat b{ font-size:1.6rem; line-height:1.1 } .stat span{ color:var(--muted); font-size:.85rem }
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px }
+.tag{ font-size:.75rem; font-weight:700; padding:.1em .55em; border-radius:99px; background:var(--line) }
+.tag.known{ background:var(--good-soft); color:var(--good) } .tag.learning{ background:var(--warn-soft); color:var(--warn) }
+.list{ display:flex; flex-direction:column; gap:8px }
+.item{ background:var(--surface); border:var(--bw) solid var(--line); border-radius:var(--radius); overflow:hidden }
+.item > button{ font:inherit; color:inherit; background:none; border:0; width:100%; text-align:left; padding:.7em 1em; display:flex; gap:10px; align-items:center; justify-content:space-between; cursor:pointer; min-height:52px }
+.item .detail{ padding:0 1em 1em; display:flex; flex-direction:column; gap:10px }
+.two{ display:grid; grid-template-columns:1fr 1fr; gap:10px } .two > *{ min-width:0 }
+@media (max-width:380px){ .two{ grid-template-columns:1fr } }
+select{ font:inherit; min-height:38px; padding:.3em .6em; border-radius:var(--radius); border:var(--bw) solid var(--line); background:var(--bg); color:var(--fg) }
+.flipcard{ font:inherit; color:inherit; width:100%; min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; cursor:pointer }
+.flipcard .ex{ text-align:left }
+details > summary{ cursor:pointer; min-height:24px }
+textarea{ font:.9rem/1.5 var(--ui); width:100%; min-height:110px; padding:.6em .8em; border-radius:var(--radius); border:var(--bw) solid var(--line); background:var(--bg); color:var(--fg) }
+.scroll{ overflow-x:auto } .scroll > table{ min-width:700px }
+table{ border-collapse:collapse; width:100%; font-size:.92rem } th,td{ text-align:left; padding:.5em .7em; border-bottom:1px solid var(--line); vertical-align:top } th{ font-size:.8rem; color:var(--muted); white-space:nowrap }
+td.num{ font-variant-numeric:tabular-nums }
+.flag{ background:var(--warn-soft); color:var(--warn); font-weight:700; font-size:.75rem; padding:.1em .5em; border-radius:99px; white-space:nowrap }
+.themeseg{ display:inline-flex; gap:4px; padding:3px; border-radius:999px; background:var(--line); flex:none }
+.themeseg button{ font:inherit; font-size:.85rem; font-weight:600; min-height:36px; min-width:52px; padding:0 .8em; border:0; border-radius:999px; background:transparent; color:var(--muted); cursor:pointer }
+.themeseg button[aria-pressed=true]{ background:var(--surface); color:var(--accent-text); box-shadow:0 1px 4px rgba(0,0,0,.18) }
+.toprow{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap }
+.toast{ min-height:1.4em; font-size:.9rem; color:var(--muted) }
+.blank{ display:inline-block; min-width:5.5em; border-bottom:3px solid var(--accent) }
+/* ---- 新版面元件 ---- */
+.hero{ display:flex; flex-direction:column; gap:6px; padding-top:44px }
+.hello{ font-size:1.2rem }
+.streakrow{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px }
+.bignum{ font-size:4.6rem; font-weight:700; line-height:1; letter-spacing:-.03em; font-variant-numeric:tabular-nums }
+.bignum small{ font-size:1.3rem; font-weight:500; color:var(--muted); margin-left:8px; letter-spacing:0 }
+.pill-y{ font:inherit; font-weight:600; font-size:.95rem; min-height:40px; padding:.3em 1em; border-radius:999px; border:0; background:var(--yellow); color:var(--yellow-ink); cursor:pointer; display:inline-flex; align-items:center; gap:2px; margin-bottom:6px }
+.bcard{ position:relative; border-radius:var(--card-r); overflow:hidden; background:var(--banner); color:#fff; box-shadow:var(--shadow) }
+.bcard::before,.bcard::after{ content:""; position:absolute; border-radius:50%; background:rgba(255,255,255,.1); pointer-events:none }
+.bcard::before{ width:170px; height:170px; right:-44px; bottom:-80px }
+.bcard::after{ width:96px; height:96px; right:70px; top:-52px; background:rgba(255,255,255,.07) }
+.bc-main{ position:relative; z-index:1; font:inherit; color:inherit; background:none; border:0; width:100%; text-align:left; cursor:pointer;
+  display:flex; flex-direction:column; justify-content:space-between; gap:16px; min-height:152px; padding:18px 18px 16px }
+.bc-title{ font-size:1.3rem; font-weight:700; line-height:1.3; padding-right:88px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere }
+.bc-meta{ display:flex; justify-content:space-between; gap:10px; font-size:.92rem; font-variant-numeric:tabular-nums }
+.bc-bar{ display:block; background:rgba(255,255,255,.3) } .bc-bar > i{ background:var(--banner-fill) }
+.bc-tag{ position:absolute; top:14px; right:14px; z-index:2; font:inherit; font-weight:600; font-size:.88rem; min-height:36px; padding:.2em .95em;
+  border-radius:999px; background:rgba(255,255,255,.2); color:#fff; border:1px solid rgba(255,255,255,.65); cursor:pointer }
+.sectitle{ display:flex; align-items:center; justify-content:center; gap:10px; color:var(--muted); font-size:.92rem; margin-top:6px }
+.sectitle::before,.sectitle::after{ content:""; width:14px; height:1px; background:var(--muted); opacity:.6 }
+.status{ text-align:center; font-weight:600 }
+.nums{ display:grid; grid-template-columns:repeat(3,1fr); text-align:center; gap:6px }
+.nums b{ display:block; font-size:2.6rem; line-height:1.15; font-weight:700; font-variant-numeric:tabular-nums }
+.nums span{ color:var(--muted); font-size:.95rem }
+.btn.go{ display:block; width:min(100%,380px); margin:6px auto 0; min-height:60px; font-size:1.2rem; box-shadow:0 6px 16px var(--btn-shadow) }
+.btn.go.ghost{ box-shadow:none; font-size:1rem }
+.tabbar{ position:fixed; left:0; right:0; bottom:0; z-index:20; background:var(--surface); border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom, 0px) }
+.tabbar .in{ max-width:560px; margin:0 auto; display:flex }
+.tabbar button{ flex:1; font:inherit; font-size:.82rem; background:none; border:0; color:var(--muted); min-height:66px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer }
+.tabbar button[aria-current=page]{ color:var(--accent-text); font-weight:700 }
+.topbar{ display:flex; align-items:center; gap:10px }
+.back{ width:44px; height:44px; flex:none; border-radius:50%; border:var(--bw) solid var(--cardbd); background:var(--surface); box-shadow:var(--shadow); color:var(--fg); display:inline-flex; align-items:center; justify-content:center; cursor:pointer }
+.pgtitle{ font-size:1.55rem; font-weight:700; display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+.pill-s{ background:var(--grad); color:#fff; font-size:.85rem; font-weight:700; padding:.15em .85em; border-radius:999px }
+.book{ display:flex; gap:14px; align-items:stretch }
+.cover{ flex:none; width:78px; height:104px; border-radius:8px; padding:8px 7px; font-size:.78rem; font-weight:700; line-height:1.25; color:#24324A; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.14) }
+.cover span{ display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere }
+.bk-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px }
+.bk-name{ font-size:1.1rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere }
+.bk-sub{ color:var(--muted); font-size:.9rem }
+.bk-prog{ margin-top:auto; display:flex; flex-direction:column; gap:6px; color:var(--muted); font-size:.9rem }
+.bk-foot{ margin-top:auto; display:flex; align-items:center; justify-content:space-between; gap:8px }
+.iconbtn{ width:40px; height:40px; border-radius:50%; border:0; background:none; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; cursor:pointer }
+.dsk-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:6px }
+.dsk-head h2{ font-size:1.15rem }
+.me-hero{ display:flex; flex-direction:column; align-items:center; gap:4px; padding-top:40px; text-align:center }
+.avatar{ width:84px; height:84px; color:var(--accent) }
+.me-name{ font-size:1.5rem; font-weight:700; overflow-wrap:anywhere }
+.sc{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center }
+.sc button{ font:inherit; font-size:.88rem; color:var(--fg); background:none; border:0; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 0; min-height:44px }
+.sc .tile{ width:56px; height:56px; border-radius:18px; display:flex; align-items:center; justify-content:center }
+.t1{ background:var(--accent-soft); color:var(--accent-text) } .t2{ background:#FFF1C2; color:#7A5A00 } .t3{ background:#FFE3D6; color:#B33A06 } .t4{ background:#DCE9FF; color:#2F5FB3 }
+:root[data-theme="dark"] .t2{ background:#3A2F14; color:#F0C36A } :root[data-theme="dark"] .t3{ background:#3B2418; color:#FFB38A } :root[data-theme="dark"] .t4{ background:#1E2C47; color:#9DBDF5 }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .t2{ background:#3A2F14; color:#F0C36A } :root:not([data-theme="light"]) .t3{ background:#3B2418; color:#FFB38A } :root:not([data-theme="light"]) .t4{ background:#1E2C47; color:#9DBDF5 }
+}
+.menu{ padding:0 }
+.mrow{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px var(--pad); border-bottom:1px solid var(--line); min-height:58px }
+.mrow:last-child{ border-bottom:0 }
+.mrow > span:first-child{ min-width:0 }
+.calhead{ text-align:center; padding-top:8px; display:flex; flex-direction:column; align-items:center; gap:4px }
+.wk{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; color:var(--muted); font-size:.8rem; font-weight:600; position:sticky; top:0; z-index:5; background:var(--bg); padding:10px 0 8px }
+.mon{ display:flex; align-items:center; gap:12px; color:var(--muted); font-size:1.4rem; font-weight:500; margin:14px 0 4px }
+.mon::after{ content:""; flex:1; height:1px; background:var(--line2) }
+.cal{ display:grid; grid-template-columns:repeat(7,1fr); row-gap:6px }
+.cd{ font:inherit; font-weight:600; justify-self:center; width:100%; max-width:44px; aspect-ratio:1; border-radius:50%; border:2px solid transparent; background:none; color:var(--fg); cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1; padding:0 }
+.cd i{ font-style:normal; font-size:.62rem; color:var(--muted); font-weight:500; margin-top:3px }
+.cd.fut{ color:var(--muted); font-weight:500 }
+.cd.part{ background:var(--accent-soft); color:var(--accent-text) }
+.cd.today{ background:var(--today) }
+.cd.done{ background:var(--grad); color:#fff }
+.cd.istoday{ border-color:var(--muted) }
+.cd.sel{ border-color:var(--accent) }
+/* ---- 電腦版(螢幕寬 900px 以上)：左側選單、橫向排版。手機維持單欄 ---- */
+.g2,.col{ display:flex; flex-direction:column; gap:14px; min-width:0 }
+.wk-m{ display:none }
+.mblock{ display:flex; flex-direction:column; gap:14px; min-width:0 }
+.tabbar.desk-only{ display:none }
+.caldetail{ position:fixed; left:max(16px,env(safe-area-inset-left,0px)); right:max(16px,env(safe-area-inset-right,0px)); bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  max-width:528px; margin:0 auto; z-index:10; box-shadow:0 8px 28px rgba(0,0,0,.25); gap:6px }
+@media (min-width:900px) and (hover:hover){
+  body.hasnav{ padding-left:calc(232px + 36px); padding-right:36px }
+  body.hasnav.deco::after{ left:calc(232px + 36px) }
+  body.hastab{ padding-bottom:48px }
+  .wrap{ max-width:680px }
+  .wrap.fluid{ max-width:1100px }
+  .wrap.wide{ max-width:1280px }
+  .hero,.me-hero{ padding-top:22px }
+  .tabbar,.tabbar.desk-only{ display:flex; flex-direction:column; top:0; right:auto; width:232px; padding:28px 16px; border-top:0; border-right:1px solid var(--line); gap:6px }
+  .tabbar::before{ content:"每日單字"; font-weight:700; font-size:1.3rem; padding:0 16px 18px }
+  .tabbar .in{ max-width:none; margin:0; flex-direction:column; gap:6px }
+  .tabbar button{ flex:none; flex-direction:row; justify-content:flex-start; gap:14px; min-height:52px; padding:0 16px; border-radius:14px; font-size:1rem }
+  .tabbar button svg{ width:24px; height:24px }
+  .tabbar button:hover{ background:var(--accent-soft) }
+  .tabbar button[aria-current=page]{ background:var(--accent-soft) }
+  .g2{ display:grid; gap:20px 28px; align-items:start }
+  .g2.home{ grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) }
+  .g2.me{ grid-template-columns:minmax(0,420px) minmax(0,1fr) }
+  .g2.set{ grid-template-columns:minmax(300px,420px) minmax(0,1fr) }
+  .g2.par{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .g2.desk{ grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:16px }
+  .g2.months{ grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:8px 44px }
+  .g2.tmain{ grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:16px 20px }
+  .g2.tset{ grid-template-columns:minmax(340px,430px) minmax(0,1fr); gap:16px 20px }
+  .g2.tmain>.t-l,.g2.tset>.t-l{ grid-column:1 }
+  .g2.tset>.t-r{ grid-column:2; grid-row:1 / span 3 }
+  .col.task{ background:var(--surface); border:1px solid var(--cardbd); border-radius:var(--card-r); box-shadow:var(--shadow); padding:30px 28px 34px }
+  .list.grid2{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); align-items:start }
+  .wk-top{ display:none }
+  .wk-m{ display:grid; position:static; background:none; padding:0 0 6px; font-size:.78rem }
+  .mon{ margin-top:10px }
+  .mblock{ gap:8px }
+  .opts{ display:grid; grid-template-columns:1fr 1fr }
+  .caldetail{ left:calc(232px + 36px); right:36px }
+}
+@media (prefers-reduced-motion: reduce){ .bar > i{ transition:none } }
+</style>
+
+<div id="app"></div>
+
+<script id="appjs">
+(function(){
+'use strict';
+
+/* ---------- 單字資料 (Lesson 8, 單字 5–13) ----------
+   w 單字 / pos 詞性 / zh 中文 / kk KK 音標 / colloc 搭配 / ex 例句(自寫) / exzh 例句中譯 / blank 例句挖空處
+   kkCheck: 音標由截圖辨識，建議老師確認 */
+const LESSON8=[
+ {id:'purchase-n',w:'purchase',pos:'n.',zh:'購買',kk:'ˋpɝtʃəs',colloc:'make a purchase of sth. 購買某物',ex:'I made a purchase at the bookstore yesterday.',exzh:'我昨天在書店買了東西。',blank:'purchase',kkCheck:true},
+ {id:'profitable-adj',w:'profitable',pos:'adj.',zh:'有利潤的',kk:'ˋprɑfɪtəbḷ',colloc:'',ex:'Selling handmade soap turned out to be profitable.',exzh:'賣手工肥皂結果很賺錢。',blank:'profitable',kkCheck:true},
+ {id:'profit-vi',w:'profit',pos:'vi.',zh:'獲得好處',kk:'ˋprɑfɪt',colloc:'profit from + N/V-ing 從……獲利',ex:'She profited from her uncle’s advice.',exzh:'她從叔叔的建議中受益。',blank:'profited'},
+ {id:'profit-n',w:'profit',pos:'n.',zh:'利潤',kk:'ˋprɑfɪt',colloc:'make a profit 獲利',ex:'The shop made a small profit last month.',exzh:'這家店上個月賺了一點利潤。',blank:'profit'},
+ {id:'similarly-adv',w:'similarly',pos:'adv.',zh:'同樣地',kk:'ˋsɪmələlɪ',colloc:'',ex:'The twins dress alike, and they speak similarly, too.',exzh:'雙胞胎穿得很像，說話方式也很相似。',blank:'similarly',kkCheck:true},
+ {id:'similar-adj',w:'similar',pos:'adj.',zh:'相似的',kk:'ˋsɪmələ',colloc:'be similar in sth. 在某方面相似；A be similar to B  A 和 B 相似',ex:'The two houses are similar in size.',exzh:'這兩棟房子大小相似。',blank:'similar',kkCheck:true},
+ {id:'similarity-n',w:'similarity',pos:'n.',zh:'相似性；相似處',kk:'ˌsɪməˋlærətɪ',colloc:'',ex:'There is a strong similarity between the two songs.',exzh:'這兩首歌有很高的相似度。',blank:'similarity'},
+ {id:'aim-vt',w:'aim',pos:'vt.',zh:'針對；對象是',kk:'em',colloc:'sth. be aimed at sb. = aim sth. at sb. 將某人定為某事物的對象',ex:'The campaign is aimed at teenagers.',exzh:'這項活動的對象是青少年。',blank:'aimed'},
+ {id:'aim-n',w:'aim',pos:'n.',zh:'目的；目標',kk:'em',colloc:'with the aim of V-ing 為了……',ex:'Her aim is to pass the exam.',exzh:'她的目標是通過考試。',blank:'aim'},
+ {id:'impulse-n',w:'impulse',pos:'n.',zh:'衝動',kk:'ˋɪmpʌls',colloc:'on impulse 一時衝動；have an impulse to VR 一時衝動想做……',ex:'He bought the jacket on impulse.',exzh:'他一時衝動買了那件外套。',blank:'impulse'},
+ {id:'display-vt',w:'display',pos:'vt.',zh:'展示；陳列',kk:'dɪˋsple',colloc:'',ex:'The museum displays old maps in the main hall.',exzh:'博物館在大廳展示古老的地圖。',blank:'displays'},
+ {id:'display-n',w:'display',pos:'n.',zh:'展覽；陳列',kk:'dɪˋsple',colloc:'on display 展出；a display of sth. 展示某物',ex:'The new bikes are on display in the window.',exzh:'新腳踏車正陳列在櫥窗裡。',blank:'display'},
+ {id:'offer-n',w:'offer',pos:'n.',zh:'特價',kk:'ˋɔfɚ',colloc:'',ex:'There is a special offer on shoes this week.',exzh:'這週鞋子有特價。',blank:'offer'},
+ {id:'offer-vt',w:'offer',pos:'vt.',zh:'提供',kk:'ˋɔfɚ',colloc:'offer sth. to sb. = offer sb. sth. 提供某物給某人',ex:'The hotel offers free breakfast to all guests.',exzh:'這家旅館提供所有房客免費早餐。',blank:'offers'},
+ {id:'customer-n',w:'customer',pos:'n.',zh:'顧客；客戶',kk:'ˋkʌstəmɚ',colloc:'',ex:'The customer asked for a bigger size.',exzh:'那位顧客要求大一點的尺寸。',blank:'customer'},
+ {id:'advantage-n',w:'advantage',pos:'n.',zh:'優勢；有利條件',kk:'ədˋvæntɪdʒ',colloc:'',ex:'Being tall is an advantage in basketball.',exzh:'身高在籃球場上是一項優勢。',blank:'advantage'}
+];
+/* 官方單字本：內嵌在網頁裡的資料(老師頁按「發布」會更新)。hw = 功課，key 是學生代碼，'*' 代表全部學生 */
+const SEED={seq:1,sets:[{id:'o1',name:'Lesson 8　單字 5–13',items:LESSON8}],hw:{}};
+let EMBED=(function(){
+  try{ const el=document.getElementById('offdata');
+    if(el&&el.textContent.trim()){ const o=JSON.parse(el.textContent); if(o&&Array.isArray(o.sets)){ o.hw=o.hw||{}; o.seq=o.seq||1; return o } } }catch(e){}
+  return JSON.parse(JSON.stringify(SEED));
+})();
+let OFF=EMBED, BYID={};
+function idx(){ BYID={}; OFF.sets.forEach(s=>s.items.forEach(it=>{ BYID[it.id]=it })) }
+function loadOff(){ OFF=(location.hash==='#teacher'&&T.draft)?T.draft:EMBED; idx() }
+const allOff=()=>Object.values(BYID);
+function mut(fn){ if(OFF===EMBED){ T.draftBase=JSON.stringify(EMBED); OFF=JSON.parse(JSON.stringify(EMBED)) } fn(); T.draft=OFF; save(TKEY,T); idx() }
+const isDirty=()=>JSON.stringify(OFF)!==JSON.stringify(EMBED);
+const LV={
+  kid :{label:'國小',     newPer:3, revCap:8,  speed:0.8, types:['en2zh','zh2en','listen']},
+  teen:{label:'國中・高中', newPer:6, revCap:14, speed:0.9, types:['en2zh','listen','spell','cloze']}
+};
+const MAXI=30;               // 複習間隔上限(天)
+const KEY='vocab-review-v1', TKEY='vocab-review-teacher-v1', DKEY='vocab-data-v1';
+/* 雲端模式：部署 Google Apps Script 後，把網址貼在這裡。留空 = 單機模式(資料內嵌在網頁裡) */
+const API_URL='https://script.google.com/macros/s/AKfycbzS6-JlHp5xnFiTc061rrOyOqUs5e9mW4zCBlScfC9udqTXOhw24NPKOeOE_VJ4tgus/exec';
+const cloud=!!API_URL;
+
+/* ---------- 儲存 (localStorage 失敗時退回記憶體) ---------- */
+const mem={};
+function load(k){ try{ const s=localStorage.getItem(k); if(s) return JSON.parse(s) }catch(e){} return mem[k]||null }
+function save(k,v){ mem[k]=v; try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} }
+
+/* ---------- 夜間模式：auto 跟著系統，light / dark 手動指定；每個裝置各自記住 ---------- */
+const THKEY='vocab-theme-v1';
+function themePref(){ const v=load(THKEY); return v==='light'||v==='dark'?v:'auto' }
+function applyTheme(){ const v=themePref(), r=document.documentElement; if(v==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme',v) }
+function themeSeg(){
+  const cur=themePref();
+  return `<span class="themeseg" role="group" aria-label="顯示模式">${[['auto','自動'],['light','淺色'],['dark','夜間']].map(([v,t])=>`<button type="button" data-a="theme" data-v="${v}" aria-pressed="${cur===v}">${t}</button>`).join('')}</span>`;
+}
+applyTheme();
+
+/* ---------- 日期 ---------- */
+function pad(n){ return String(n).padStart(2,'0') }
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()) }
+function dnum(s){ const a=s.split('-').map(Number); return Math.round(Date.UTC(a[0],a[1]-1,a[2])/86400000) }
+function addDays(s,n){ const d=new Date((dnum(s)+n)*86400000); return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate()) }
+function mmdd(s){ const a=s.split('-'); return Number(a[1])+'/'+Number(a[2]) }
+
+/* ---------- 排程：FSRS 4.5 預設參數的簡化實作 ---------- */
+const W=[0.4872,1.4003,3.7145,13.8206,5.1618,1.2298,0.8975,0.031,1.6474,0.1367,1.0461,2.1072,0.0793,0.3246,1.587,0.2272,2.8755];
+const DECAY=-0.5, FACTOR=19/81;
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const retr=(t,S)=>Math.pow(1+FACTOR*t/S,DECAY);
+const initD=g=>clamp(W[4]-W[5]*(g-3),1,10);
+const nextD=(D,g)=>clamp(W[7]*initD(3)+(1-W[7])*(D-W[6]*(g-3)),1,10);
+const recallS=(D,S,R,g)=>S*(1+Math.exp(W[8])*(11-D)*Math.pow(S,-W[9])*(Math.exp((1-R)*W[10])-1)*(g===2?W[15]:1)*(g===4?W[16]:1));
+const forgetS=(D,S,R)=>W[11]*Math.pow(D,-W[12])*(Math.pow(S+1,W[13])-1)*Math.exp((1-R)*W[14]);
+
+// 新字：第一次學完，明天一定再看一次(新背的字複習最密)
+function learnNew(id,g,t){
+  P.cards[id]={S:g===1?0.5:1, D:initD(g), reps:1, lapses:g===1?1:0, wrong:g===1?1:0, first:t, last:t, due:addDays(t,1)};
+}
+function reviewCard(c,g,t){
+  const el=Math.max(0,dnum(t)-dnum(c.last)), R=retr(el,c.S);
+  if(g===1){ c.S=Math.max(0.3,Math.min(c.S,forgetS(c.D,c.S,R))); c.lapses++; c.wrong++ }
+  else c.S=recallS(c.D,c.S,R,g);
+  c.D=nextD(c.D,g); c.reps++; c.last=t;
+  const iv=g===1?1:clamp(Math.round(c.S),1,MAXI);
+  c.due=addDays(t,iv);
+}
+function stage(c){ if(!c) return 'new'; return (c.S>=7&&c.reps>=3)?'known':'learning' }
+const STAGE_ZH={new:'未學',learning:'學習中',known:'熟悉'};
+
+/* ---------- 自建單字本：和老師的單字分開排程，不計入連續天數 ---------- */
+const WORD_RE=/^[A-Za-z][A-Za-z '’\-\.]{0,39}$/;
+const MAX_SETS=12, MAX_ITEMS=300;
+function userItem(id){ for(const s of P.sets){ const it=s.items.find(x=>x.id===id); if(it) return it } return null }
+const itemOf=id=>BYID[id]||userItem(id);
+function setOfItem(id){ return P.sets.find(s=>s.items.some(x=>x.id===id))||OFF.sets.find(s=>s.items.some(x=>x.id===id))||null }
+const findSet=id=>P.sets.find(x=>x.id===id)||OFF.sets.find(x=>x.id===id)||null;
+const escRe=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function clozeOf(it){
+  if(it.blank) return it.blank;
+  if(!it.ex) return null;
+  const m=new RegExp('\\b'+escRe(it.w)+'(?:s|es|ed|d|ing)?\\b','i').exec(it.ex);
+  return m?m[0]:null;
+}
+function ulogOf(sid,t){ const k=sid+'|'+t; return P.ulog[k]||(P.ulog[k]={nw:0,rv:0,ok:0,tot:0}) }
+function planSet(s){
+  const t=todayStr(), L=LV[P.level], lg=ulogOf(s.id,t);
+  const rt=x=>retr(dnum(t)-dnum(P.cards[x.id].last),P.cards[x.id].S);
+  const due=s.items.filter(x=>P.cards[x.id]&&P.cards[x.id].due<=t).sort((a,b)=>rt(a)-rt(b));
+  return {rev:due.slice(0,Math.max(0,L.revCap-lg.rv)).map(x=>x.id),
+          nw:s.items.filter(x=>!P.cards[x.id]).slice(0,Math.max(0,L.newPer-lg.nw)).map(x=>x.id)};
+}
+function addItem(s,w,zh,ex){
+  w=w.replace(/\s+/g,' ').trim(); zh=zh.trim(); ex=(ex||'').trim();
+  if(hasCJK(w)&&ENG.test(zh)){ const x=w; w=zh; zh=x }   // 兩欄填反了就自動對調
+  if(!WORD_RE.test(w)) return '英文欄請輸入英文字母（可以有空格、連字號）。';
+  if(!zh) return '請輸入中文意思。';
+  if(s.items.length>=MAX_ITEMS) return '這本已經有 '+MAX_ITEMS+' 個字，請另開一本。';
+  if(s.items.some(x=>x.w.toLowerCase()===w.toLowerCase())) return w+' 已經在這本裡了。';
+  s.items.push({id:'u_'+(++P.seq),w,zh,ex}); return null;
+}
+const ENG=/^[A-Za-z][A-Za-z '’\-\.]{0,39}$/;
+const hasCJK=s=>/[^\x00-\x7F]/.test(s);
+function pairOf(a,b){
+  if(ENG.test(a)&&hasCJK(b)) return {w:a,zh:b};
+  if(ENG.test(b)&&hasCJK(a)) return {w:b,zh:a};
+  return null;
+}
+// 一行一組，英文和中文誰先誰後都可以；分隔符號：, ， : ： ; ； = Tab、空格加連字號，或英文與中文的交界
+function splitPair(line){
+  const re=/\s*[,，:：;；\t=＝]\s*|\s+[-–—]\s+/g; let m; const cuts=[];
+  while((m=re.exec(line))) cuts.push([m.index,m[0].length]);
+  for(const [i,l] of cuts){ const p=pairOf(line.slice(0,i).trim(),line.slice(i+l).trim()); if(p) return p }
+  let m1=/^([A-Za-z][A-Za-z '’\-\.]*?)\s+([^\x00-\x7F].*)$/.exec(line);
+  if(m1){ const p=pairOf(m1[1].trim(),m1[2].trim()); if(p) return p }
+  let m2=/^([^A-Za-z]*[^\x00-\x7F][^A-Za-z]*?)\s+([A-Za-z][A-Za-z '’\-\.]*)$/.exec(line);
+  if(m2){ const p=pairOf(m2[2].trim(),m2[1].trim()); if(p) return p }
+  return null;
+}
+function parseBulk(text){
+  const out=[];
+  text.split(/\r?\n/).forEach(line=>{ line=line.trim(); if(!line) return; const p=splitPair(line); if(p) out.push(p) });
+  return out;
+}
+
+/* ---------- 學生資料 ---------- */
+/* 專屬連結：網址後面加 #kid-amy 或 #teen-leo。每個代碼各有一份進度，同一支手機可以給多位學生用。 */
+function linkInfo(){ const m=/^#(kid|teen)-([a-z0-9]{1,16})$/i.exec(location.hash); return m?{level:m[1].toLowerCase(),code:m[2].toLowerCase()}:null }
+function storeKey(){ const l=linkInfo(); return l?KEY+':'+l.code:KEY }
+let PKEY=storeKey(), P=null;
+function loadProfile(){
+  PKEY=storeKey(); P=load(PKEY); fixP();
+}
+function fixP(){
+  if(P){
+    if(!P.rest) P.rest={days:[0,6],next:null};
+    delete P.streak.tokens; delete P.streak.run;
+    if(!P.sets) P.sets=[]; if(!P.ulog) P.ulog={}; if(!P.seq) P.seq=0;
+    const l=linkInfo(); if(l){ P.code=l.code; P.level=l.level }
+  }
+}
+function saveP(){ P.ts=Date.now(); save(PKEY,P); schedulePush() }
+/* ---------- 雲端 (Google 試算表) ---------- */
+let pushT=null, LASTO=null, booting=false;
+function netFetch(url,opt){ const c=new AbortController(), tm=setTimeout(()=>c.abort(),10000); return fetch(url,Object.assign({signal:c.signal},opt||{})).then(r=>r.json()).finally(()=>clearTimeout(tm)) }
+const jget=q=>netFetch(API_URL+'?'+q);
+const jpost=b=>netFetch(API_URL,{method:'POST',body:JSON.stringify(b)});
+function normData(o){ if(!o||!Array.isArray(o.sets)) return null; o.hw=o.hw||{}; o.seq=o.seq||1; return o }
+function schedulePush(){ if(!cloud||!P||!P.code) return; clearTimeout(pushT); pushT=setTimeout(pushProfile,2000) }
+function pushProfile(){ if(!cloud||!P||!P.code) return; jpost({action:'putProfile',code:P.code,ts:P.ts,json:JSON.stringify(P)}).catch(()=>{}) }
+function pushReport(){ if(!cloud||!P||!P.code) return; makeReport(); jpost({action:'report',report:LASTO}).catch(()=>{}) }
+async function pullProfile(){
+  const l=linkInfo(); if(!cloud||!l) return;
+  const r=await jget('action=profile&code='+l.code);
+  if(r&&r.json&&(!P||r.ts>(P.ts||0))){ P=JSON.parse(r.json); P.code=l.code; P.level=l.level; fixP(); save(PKEY,P) }
+}
+async function cloudLoadData(){
+  const d=normData(await jget('action=data')); if(!d) return;
+  if(JSON.stringify(d)!==JSON.stringify(EMBED)){ EMBED=d; save(DKEY,d) }
+  if(T.draft&&JSON.stringify(T.draft)===JSON.stringify(EMBED)){ delete T.draft; delete T.draftBase; save(TKEY,T) }
+  loadOff();
+}
+const secretVal=()=>{ const el=document.getElementById('tsecret'); if(el&&el.value) T.secret=el.value.trim(); save(TKEY,T); return T.secret||'' };
+async function fetchReports(){
+  const sec=T.secret; if(!sec) return '請先輸入老師密碼。';
+  try{ const r=await jpost({action:'reports',secret:sec}); if(r.error) return '取得失敗：'+r.error;
+    Object.keys(T.reports).forEach(k=>{ if(!/^\d{4}-\d{2}-\d{2}$/.test((T.reports[k]||{}).d||'')) delete T.reports[k] });
+    let n=0; (r.reports||[]).forEach(o=>{ if(o&&o.n&&o.d){ T.reports[(o.c||o.n)+'|'+o.d]=o; n++ } }); save(TKEY,T); return '已更新 '+n+' 位學生的回報。' }
+  catch(e){ return '連不上雲端，請稍後再試。' }
+}
+function boot(){
+  if(parentCode()){ loadParent().then(render); render(); return }
+  if(!cloud){ render(); return }
+  const c=load(DKEY); if(normData(c)){ EMBED=c; loadOff() }
+  const l=linkInfo(); booting=!!l&&!P;
+  render();
+  const jobs=[cloudLoadData()];
+  if(l) jobs.push(pullProfile());
+  if(location.hash==='#teacher'&&T.secret) jobs.push(fetchReports().then(m=>{ uiFlag.msg=m }));
+  Promise.all(jobs.map(p=>p.catch(()=>{}))).then(()=>{ booting=false; if(P&&P.code) pushReport(); if(!(S&&view==='session')) render() });
+}
+loadProfile();
+let S=null;                // 目前的練習 session
+let view='home', uiFlag={};  // uiFlag: 臨時狀態(展開的項目、確認重設…)
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function lvl(){ const l=linkInfo(); return P?P.level:(l?l.level:(location.hash==='#kid'?'kid':'teen')) }
+function applyLevel(){ document.documentElement.setAttribute('data-level',lvl()) }
+function logOf(t){ return P.log[t]||(P.log[t]={nw:0,rv:0,ok:0,tot:0}) }
+
+/* 休息日：學生每週自選 2 天，這兩天不算漏掉，連續天數不中斷；修改從下週一起生效 */
+const WD=['日','一','二','三','四','五','六'];
+const wdayOf=s=>new Date(dnum(s)*86400000).getUTCDay();
+const dayNames=days=>days.slice().sort((a,b)=>((a+6)%7)-((b+6)%7)).map(d=>'週'+WD[d]).join('、');
+function isRest(s){ return P.rest.days.includes(wdayOf(s)) }
+function nextMonday(t){ return addDays(t,((8-wdayOf(t))%7)||7) }
+function applyRest(){ const r=P.rest, t=todayStr(); if(r.next&&t>=r.next.from){ r.days=r.next.days; r.next=null; saveP() } }
+function missedDays(last,t){   // last 與 t 之間漏掉幾個「非休息日」
+  let n=0; for(let d=dnum(last)+1; d<dnum(t); d++){ if(!P.rest.days.includes(new Date(d*86400000).getUTCDay())) n++ }
+  return n;
+}
+function streakAlive(){
+  const st=P.streak; if(!st.last) return false;
+  const t=todayStr(); if(st.last===t) return true;
+  return missedDays(st.last,t)===0;
+}
+function streakCount(){ return streakAlive()?P.streak.count:0 }
+function markDone(t){
+  const st=P.streak; if(st.last===t) return;
+  if(!st.last||missedDays(st.last,t)>0) st.count=1; else st.count++;
+  st.last=t;
+}
+
+/* 功課：老師指派給這個學生(或全部學生)的單字本；沒有功課就沒有每日任務 */
+function hwSets(){
+  const out=[];
+  (OFF.hw[P.code||'']||[]).concat(OFF.hw['*']||[]).forEach(h=>{ const s=OFF.sets.find(x=>x.id===h.set); if(s&&!out.includes(s)) out.push(s) });
+  return out;
+}
+function hwItems(){ const seen=new Set(), out=[]; hwSets().forEach(s=>s.items.forEach(it=>{ if(!seen.has(it.id)){ seen.add(it.id); out.push(it) } })); return out }
+function planToday(){
+  const t=todayStr(), L=LV[P.level], lg=logOf(t), H=hwItems();
+  const due=H.filter(d=>P.cards[d.id]&&P.cards[d.id].due<=t)
+    .sort((a,b)=>retr(dnum(t)-dnum(P.cards[a.id].last),P.cards[a.id].S)-retr(dnum(t)-dnum(P.cards[b.id].last),P.cards[b.id].S));
+  const rev=due.slice(0,Math.max(0,L.revCap-lg.rv)).map(d=>d.id);
+  const fresh=H.filter(d=>!P.cards[d.id]).map(d=>d.id);
+  const nw=fresh.slice(0,Math.max(0,L.newPer-lg.nw));
+  return {rev,nw,backlog:Math.max(0,due.length-rev.length)};
+}
+function ensureDone(){
+  const t=todayStr(), lg=logOf(t), pl=planToday();
+  if(isRest(t)) return;
+  if(!lg.done && pl.rev.length===0 && pl.nw.length===0 && hwItems().some(d=>P.cards[d.id])){ lg.done=true; markDone(t); saveP() }
+}
+
+/* ---------- 發音 (瀏覽器內建語音，美式英文) ---------- */
+const canSpeak=('speechSynthesis' in window)&&typeof SpeechSynthesisUtterance!=='undefined';
+let voice=null;
+function pickVoice(){
+  if(!canSpeak) return;
+  try{
+    const vs=speechSynthesis.getVoices().filter(v=>/^en[-_]US$/i.test(v.lang));
+    voice=vs.find(v=>/samantha|ava|allison|aria|jenny|google us|natural|enhanced/i.test(v.name))||vs[0]||null;
+  }catch(e){}
+}
+if(canSpeak){ pickVoice(); try{ speechSynthesis.addEventListener('voiceschanged',pickVoice) }catch(e){} }
+function say(w){
+  if(!canSpeak) return;
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(w); u.lang='en-US'; if(voice) u.voice=voice; u.rate=LV[lvl()].speed; speechSynthesis.speak(u) }catch(e){}
+}
+const SPK='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const spkBtn=(w,cls)=>canSpeak?`<button type="button" class="spk ${cls||''}" data-a="speak" data-w="${esc(w)}" aria-label="播放發音">${SPK}</button>`:'';
+
+/* ---------- 出題 ---------- */
+const shuffle=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a };
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function distinctWords(list,n){ const seen=new Set(), out=[]; for(const x of list){ if(!seen.has(x.w)){ seen.add(x.w); out.push(x); if(out.length===n) break } } return out }
+
+function makeQ(id,kind){
+  const it=itemOf(id), L=LV[P.level], c=P.cards[id];
+  const types=L.types.filter(x=>(x!=='listen'||canSpeak)&&(x!=='cloze'||clozeOf(it)));
+  const rec=types.filter(x=>x==='en2zh'||x==='zh2en'||x==='listen');
+  const prod=types.filter(x=>x==='spell'||x==='cloze');
+  let type;
+  if(kind==='new'||kind==='again'||!c) type='en2zh';
+  else if(c.S>=4&&prod.length) type=pick(prod.concat(rec.slice(0,1)));
+  else type=pick(rec);
+  const own=setOfItem(id);
+  const deckOthers=shuffle(allOff().filter(x=>x.w.toLowerCase()!==it.w.toLowerCase()));
+  const others=own?shuffle(own.items.filter(x=>x.w.toLowerCase()!==it.w.toLowerCase())).concat(deckOthers):deckOthers;
+  if(type==='en2zh'){
+    const same=others.filter(x=>x.pos===it.pos&&x.zh!==it.zh), rest=others.filter(x=>x.zh!==it.zh&&!same.includes(x));
+    const ds=same.concat(rest).slice(0,3);
+    return {type,opts:shuffle([{label:it.zh,ok:true}].concat(ds.map(x=>({label:x.zh,ok:false}))))};
+  }
+  const fam=x=>x.w.slice(0,4)===it.w.slice(0,4);
+  const pool=P.level==='teen'?others.filter(fam).concat(others.filter(x=>!fam(x))):others;
+  if(type==='zh2en'||type==='listen'){
+    const ds=distinctWords(pool,3);
+    return {type,opts:shuffle([{label:it.w,ok:true}].concat(ds.map(x=>({label:x.w,ok:false}))))};
+  }
+  if(type==='spell') return {type,answer:it.w.toLowerCase()};
+  return {type:'cloze',answer:clozeOf(it).toLowerCase()};
+}
+
+function buildSession(practice,scope){
+  let q=[];
+  const mk=(ids,kind)=>ids.map(id=>({id,kind,first:true}));
+  if(scope){
+    const s=findSet(scope); if(!s) return null;
+    if(practice) q=mk(shuffle(s.items.filter(x=>P.cards[x.id]).sort((a,b)=>P.cards[a.id].S-P.cards[b.id].S).slice(0,10).map(x=>x.id)),'practice');
+    else{ const pl=planSet(s); q=mk(pl.rev,'review').concat(mk(pl.nw,'new')) }
+  }else if(practice){
+    const learned=hwItems().filter(d=>P.cards[d.id]).sort((a,b)=>P.cards[a.id].S-P.cards[b.id].S).slice(0,8);
+    q=mk(shuffle(learned).map(d=>d.id),'practice');
+  }else{
+    const pl=planToday();
+    q=mk(pl.rev,'review').concat(mk(pl.nw,'new'));
+  }
+  if(!q.length) return null;
+  S={queue:q,total:q.length,firstLeft:q.length,practice:!!practice,scope:scope||null,ok:0,tot:0,phase:'ask',q:null,last:null};
+  setEntry();
+  return S;
+}
+function setEntry(){
+  const e=S.queue[0];
+  S.q=makeQ(e.id,e.kind==='practice'?'review':e.kind);
+  S.phase=(e.kind==='new'&&e.first)?'intro':'ask';
+  S.last=null;
+  if(S.phase==='ask'&&S.q.type==='listen') setTimeout(()=>{ if(S&&S.phase==='ask'&&S.queue[0]===e) say(itemOf(e.id).w) },250);
+}
+function answer(correct,given){
+  const e=S.queue[0], t=todayStr();
+  S.phase='fb'; S.last={correct,given};
+  if(e.first){
+    S.tot++; if(correct) S.ok++;
+    if(!S.practice){
+      const lg=S.scope?ulogOf(S.scope,t):logOf(t), g=correct?3:1;
+      if(e.kind==='new'){ learnNew(e.id,g,t); lg.nw++ } else { reviewCard(P.cards[e.id],g,t); lg.rv++ }
+      lg.tot++; if(correct) lg.ok++;
+      saveP();
+    }
+  }
+  if(!correct&&(e.tries||0)<2) S.queue.push({id:e.id,kind:'again',first:false,tries:(e.tries||0)+1});
+}
+function nextEntry(){
+  const e=S.queue.shift();
+  if(e.first) S.firstLeft--;
+  if(!S.queue.length) return finish();
+  setEntry();
+}
+function finish(){
+  if(!S.practice&&!S.scope){
+    const lg=logOf(todayStr()), pl=planToday();
+    if(!lg.done&&!pl.rev.length&&!pl.nw.length){ lg.done=true; markDone(todayStr()) }
+    saveP();
+  }
+  pushReport();
+  view='done';
+}
+
+/* ---------- 畫面：共用片段 ---------- */
+const posTag=it=>it.pos?`<span class="pos">${esc(it.pos)}</span>`:'';
+function wordCard(it,opts){
+  opts=opts||{};
+  return `<div class="card idx stack">
+    <div class="row between"><div class="stack" style="gap:6px;min-width:0">
+      <div class="word">${esc(it.w)}</div>
+      ${it.kk?`<div class="kk">[${esc(it.kk)}]</div>`:''}
+    </div>${spkBtn(it.w)}</div>
+    <div class="row">${posTag(it)}<span class="zh">${esc(it.zh)}</span></div>
+    ${it.ex?`<div class="ex"><span class="en">${esc(it.ex)}</span>${it.exzh?`<span class="cn">${esc(it.exzh)}</span>`:''}</div>`:''}
+    ${it.colloc?`<div class="colloc">${esc(it.colloc)}</div>`:''}
+    ${opts.extra||''}
+  </div>`;
+}
+function dueText(c){
+  if(!c) return '還沒學';
+  const t=todayStr(), d=dnum(c.due)-dnum(t);
+  return d<=0?'今天要複習':d===1?'明天複習':d+' 天後複習';
+}
+
+/* ---------- 畫面：設定 / 首頁 ---------- */
+function viewSetup(){
+  const li=linkInfo(), lv=li?li.level:((location.hash==='#kid')?'kid':'teen');
+  return `<div class="wrap"><div class="toprow"><h1 class="title">每日單字</h1>${themeSeg()}</div>
+  <p class="lead">每天花幾分鐘，複習老師教過的單字。</p>
+  <form class="card stack" data-form="setup">
+    <label for="nick">你的暱稱</label>
+    <input type="text" id="nick" name="nick" maxlength="12" autocomplete="off" required placeholder="請輸入暱稱" value="">
+    ${li?'':`<fieldset><legend>介面</legend>
+      <label class="choice"><input type="radio" name="lv" value="kid" ${lv==='kid'?'checked':''}><span>國小</span></label>
+      <label class="choice"><input type="radio" name="lv" value="teen" ${lv==='teen'?'checked':''}><span>國中・高中</span></label>
+    </fieldset>`}
+    <fieldset><legend>每週休息 2 天</legend>
+      <div class="days">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" name="rd" value="${d}" ${d===0||d===6?'checked':''}><span>${WD[d]}</span></label>`).join('')}</div>
+      <p class="note" style="width:100%">休息日不用背單字，連續天數也不會中斷。</p>
+    </fieldset>
+    <p class="note" id="rderr" style="color:var(--bad)" aria-live="polite"></p>
+    <button class="btn" type="submit">開始</button>
+    <p class="note">暱稱和學習進度只存在這個裝置的瀏覽器裡，不會上傳。</p>
+  </form></div>`;
+}
+/* ---------- 圖示與共用元件 ---------- */
+const SVGW=(p,s)=>`<svg viewBox="0 0 24 24" width="${s||28}" height="${s||28}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const IC={
+  back:SVGW('<path d="M15 5l-7 7 7 7"/>',22),
+  home:'<svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor" aria-hidden="true"><path d="M12 3.2 2.6 11.6h2.6V20a1 1 0 0 0 1 1h4v-6h3.6v6h4a1 1 0 0 0 1-1v-8.4h2.6z"/></svg>',
+  me:'<svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4.3"/><path d="M3.8 20.6c0-4.2 3.7-6.6 8.2-6.6s8.2 2.4 8.2 6.6z"/></svg>',
+  avatar:'<svg class="avatar" viewBox="0 0 84 84" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><circle cx="42" cy="28" r="14"/><path d="M14 74c2-16 14-24 28-24s26 8 28 24"/></svg>',
+  book:SVGW('<path d="M5 4.5h10a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/>'),
+  list:SVGW('<path d="M9 6.5h10M9 12h10M9 17.5h10"/><circle cx="5" cy="6.5" r=".9"/><circle cx="5" cy="12" r=".9"/><circle cx="5" cy="17.5" r=".9"/>'),
+  cal:SVGW('<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
+  send:SVGW('<path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/>')
+};
+const backBtn=(a)=>`<div class="topbar"><button class="back" data-a="${a||'back'}" aria-label="返回">${IC.back}</button></div>`;
+function tabbar(cur,deskOnly){
+  const b=(a,ic,txt)=>`<button data-a="${a}" ${cur===a?'aria-current="page"':''}>${ic}<span>${txt}</span></button>`;
+  return `<nav class="tabbar${deskOnly?' desk-only':''}" aria-label="主選單"><div class="in">${b('home',IC.home,'首頁')}${b('me',IC.me,'我的')}</div></nav>`;
+}
+const COVERS=['linear-gradient(150deg,#FFD9D2,#FFB9A8)','linear-gradient(150deg,#D8DEFF,#B6BEFA)','linear-gradient(150deg,#CFE6FF,#A9D0FA)','linear-gradient(150deg,#D4F2E2,#A9E3C6)','linear-gradient(150deg,#FFE9B8,#FFD27A)'];
+const coverOf=id=>COVERS[[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0)%COVERS.length];
+const coverHTML=s=>`<div class="cover" style="background:${coverOf(s.id)}"><span>${esc(s.name)}</span></div>`;
+const setProg=s=>{ const n=s.items.length, l=s.items.filter(x=>P.cards[x.id]).length; return {n,l,pct:n?Math.round(l/n*100):0} };
+
+/* ---------- 畫面：首頁 ---------- */
+function viewHome(){
+  ensureDone();
+  const t=todayStr(), lg=logOf(t), pl=planToday(), H=hwItems(), hs=hwSets();
+  const remain=pl.nw.length+pl.rev.length, done=!!lg.done, restToday=isRest(t), sc=streakCount();
+  const counts={new:0,learning:0,known:0}; H.forEach(d=>counts[stage(P.cards[d.id])]++);
+  const learned=H.length-counts.new, pct=H.length?Math.round(learned/H.length*100):0;
+  const tomorrow=H.filter(d=>P.cards[d.id]&&P.cards[d.id].due<=addDays(t,1)&&P.cards[d.id].due>t).length;
+  const title=!hs.length?'選一本單字本':hs.length===1?hs[0].name:hs[0].name+' 等 '+hs.length+' 本';
+  const card=`<div class="bcard">
+    <button class="bc-main" data-a="books" aria-label="換一本單字本，看各本進度">
+      <span class="bc-title">${esc(title)} ⇄</span>
+      <span class="stack" style="gap:8px"><span class="bc-meta">${H.length?`<span>已學 ${pct}%</span><span>${learned}/${H.length} 字</span>`:'<span>老師還沒有出功課，點這裡挑一本來練習</span>'}</span>
+        <span class="bar bc-bar" aria-hidden="true"><i style="width:${pct}%"></i></span></span>
+    </button>
+    ${H.length?'<button class="bc-tag" data-a="browse">單字表</button>':''}
+  </div>`;
+  let status='', action='';
+  if(!H.length){
+    status='<p class="status">今天沒有一定要背的字。</p>';
+    action='<button class="btn go" data-a="books">選一本單字本</button>';
+  }else if(done){
+    status='<p class="status">今天的單字背完了 🎉'+(tomorrow?`　明天有 ${tomorrow} 個字要複習`:'')+'</p>';
+    action=learned?'<button class="btn go ghost" data-a="practice">加強練習（不影響排程）</button>':'';
+  }else if(restToday){
+    status='<p class="status">今天是休息日，不用背單字。</p>';
+    action=remain?`<button class="btn go ghost" data-a="start">還是想練習</button>`:'';
+  }else{
+    status=pl.backlog?`<p class="note" style="text-align:center">還有 ${pl.backlog} 個字待複習，會分到接下來幾天，不用一次補完。</p>`:'';
+    action=`<button class="btn go" data-a="start">${lg.nw+lg.rv?'繼續學習':'開始學習'}</button>`;
+  }
+  return `<div class="wrap fluid"><div class="g2 home">
+    <div class="col"><div class="hero"><p class="hello">${esc(P.nick)} 在每日單字學習</p>
+      <div class="streakrow"><div class="bignum">${sc}<small>天</small></div><button class="pill-y" data-a="cal">打卡日曆 ›</button></div></div>
+    ${card}</div>
+    <div class="col task"><div class="sectitle">今日任務</div>
+    <div class="nums"><div><b>${pl.nw.length}</b><span>新字</span></div><div><b>${pl.rev.length}</b><span>複習</span></div><div><b>${counts.new}</b><span>未學</span></div></div>
+    ${status}${action}</div>
+  </div></div>${tabbar('home')}`;
+}
+
+/* ---------- 畫面：選單字本 ---------- */
+function viewBooks(){
+  const hs=hwSets();
+  const cur=hs.length?hs.map(s=>{ const p=setProg(s);
+    return `<div class="book">${coverHTML(s)}<div class="bk-body"><div class="bk-name">${esc(s.name)}</div><div class="bk-sub">老師出的功課</div>
+      <div class="bk-prog"><span>已學：${p.l}/${p.n} 字</span><div class="bar"><i style="width:${p.pct}%"></i></div></div></div></div>`;
+  }).join(''):'<p class="lead">老師還沒有出功課。可以從下面的書桌挑一本來練習。</p>';
+  const desk=OFF.sets.filter(s=>!s.hidden&&s.items.length&&!hs.includes(s)).concat(P.sets);
+  const rows=desk.map(s=>{ const p=setProg(s), pl=planSet(s), todo=pl.rev.length+pl.nw.length, mine=P.sets.includes(s);
+    return `<div class="card book">${coverHTML(s)}<div class="bk-body"><div class="bk-name">${esc(s.name)}</div>
+      <div class="bk-prog"><span>已學：${p.l}/${p.n} 字${todo&&p.n?`・今天 ${todo}`:''}</span><div class="bar"><i style="width:${p.pct}%"></i></div></div>
+      <div class="bk-foot"><span class="note">${mine?'我的單字本':'老師的單字本'}</span><button class="btn soft small" data-a="open-set" data-id="${s.id}">學習此書</button></div></div></div>`;
+  }).join('');
+  const canAdd=P.sets.length<MAX_SETS;
+  return `<div class="wrap fluid">${backBtn()}
+    <h1 class="pgtitle">我的學習任務 ${hs.length?'<span class="pill-s">正在學</span>':''}</h1>
+    <div class="card stack">${cur}${hs.length?'<div class="row"><button class="btn small" data-a="home">回首頁開始背</button><button class="btn ghost small" data-a="browse">看功課單字</button></div>':''}</div>
+    <div class="dsk-head"><h2>我的書桌</h2>${canAdd?`<button class="btn outline small" data-a="addbook" aria-expanded="${!!uiFlag.addbook}">＋ 新增單字本</button>`:''}</div>
+    ${uiFlag.addbook&&canAdd?`<form class="card row" data-form="newset"><input type="text" id="setname" name="setname" maxlength="20" placeholder="新單字本的名稱" style="flex:1 1 160px" aria-label="新單字本的名稱"><button class="btn small" type="submit">新增</button></form>`:''}
+    ${rows?`<div class="g2 desk">${rows}</div>`:'<p class="lead">書桌上還沒有單字本。學校或課外看到的字，可以自己新增一本記在這裡。</p>'}
+    <p class="note" style="color:var(--bad)" aria-live="polite">${esc(uiFlag.err||'')}</p>
+  </div>`;
+}
+
+/* ---------- 畫面：我的 ---------- */
+function restBlock(){
+  const r=P.rest, sel=uiFlag.sel;
+  if(!sel) return `<div class="mrow"><span>每週休息日：<b>${dayNames(r.days)}</b>${r.next?`<br><span class="note">下週一起改為：${dayNames(r.next.days)}</span>`:''}</span><button class="btn ghost small" data-a="rest-edit">修改</button></div>`;
+  return `<div class="stack" style="padding:14px var(--pad)"><p>選 2 天當休息日：</p>
+    <div class="days">${[1,2,3,4,5,6,0].map(d=>`<button type="button" class="${sel.includes(d)?'on':''}" data-a="rd" data-d="${d}" aria-pressed="${sel.includes(d)}">${WD[d]}</button>`).join('')}</div>
+    <p class="note">修改會從下週一開始生效。休息日不用背，連續天數也不會中斷。</p>
+    <div class="row"><button class="btn small" data-a="rest-save" ${sel.length===2?'':'disabled'}>儲存</button><button class="btn ghost small" data-a="rest-cancel">取消</button></div></div>`;
+}
+function viewMe(){
+  const sc=streakCount();
+  const tile=(a,cls,ic,txt)=>`<button data-a="${a}"><span class="tile ${cls}">${ic}</span>${txt}</button>`;
+  return `<div class="wrap fluid"><div class="g2 me"><div class="col">
+    <div class="me-hero">${IC.avatar}<div class="me-name">${esc(P.nick)}</div>${P.code?`<div class="note">代碼：${esc(P.code)}</div>`:''}
+      <button class="pill-s" style="border:0;font:inherit;font-weight:700;cursor:pointer;margin-top:6px" data-a="cal">打卡 ${sc} 天 ›</button></div>
+    <div class="card"><div class="sc">${tile('books','t1',IC.book,'單字書')}${tile('browse','t2',IC.list,'功課單字')}${tile('cal','t3',IC.cal,'打卡日曆')}${tile('report','t4',IC.send,'回報老師')}</div></div></div>
+    <div class="col"><div class="card menu">
+      <div class="mrow"><span>顯示模式</span>${themeSeg()}</div>
+      ${restBlock()}
+      ${P.code?'':`<div class="mrow"><span>介面</span><span class="row" style="gap:8px">
+        <button class="btn ghost small ${P.level==='kid'?'on':''}" data-a="level" data-v="kid" aria-pressed="${P.level==='kid'}">國小</button>
+        <button class="btn ghost small ${P.level==='teen'?'on':''}" data-a="level" data-v="teen" aria-pressed="${P.level==='teen'}">國中・高中</button></span></div>`}
+      ${uiFlag.reset
+        ? `<div class="mrow"><span class="note">清除這個裝置上的所有紀錄？</span><span class="row"><button class="btn small" data-a="reset-yes">確定清除</button><button class="btn ghost small" data-a="reset-no">取消</button></span></div>`
+        : `<div class="mrow"><span>重設學習紀錄</span><button class="btn ghost small" data-a="reset">重設</button></div>`}
+    </div>
+    <p class="note" style="text-align:center">暱稱和學習進度存在這個裝置的瀏覽器裡。</p>
+  </div></div></div>${tabbar('me')}`;
+}
+
+/* ---------- 畫面：打卡日曆(只看，不分享) ---------- */
+function viewCal(){
+  const t=todayStr(), sc=streakCount();
+  const first=Object.keys(P.log).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort()[0]||t;
+  const [ty,tm]=t.split('-').map(Number), [fy,fm]=first.split('-').map(Number);
+  const n=clamp((ty-fy)*12+(tm-fm),0,11);
+  const stateOf=ds=>{ const lg=P.log[ds];
+    if(ds>t) return 'fut';
+    if(lg&&lg.done) return 'done';
+    if(lg&&(lg.nw+lg.rv)>0) return 'part';
+    return ''; };
+  const months=[];
+  for(let i=0;i<=n;i++){
+    const idx=ty*12+(tm-1)-i, y=Math.floor(idx/12), m=idx%12+1;
+    const days=new Date(Date.UTC(y,m,0)).getUTCDate(), lead=new Date(Date.UTC(y,m-1,1)).getUTCDay();
+    let cells='<span></span>'.repeat(lead);
+    for(let d=1;d<=days;d++){
+      const ds=y+'-'+pad(m)+'-'+pad(d), st=stateOf(ds), rest=isRest(ds)&&st!=='done';
+      cells+=`<button class="cd ${st} ${ds===t?(st?'istoday':'today'):''} ${uiFlag.cd===ds?'sel':''}" data-a="calday" data-d="${ds}" aria-label="${m}月${d}日" aria-pressed="${uiFlag.cd===ds}"><span>${d}</span>${rest?'<i>休</i>':''}</button>`;
+    }
+    months.push(`<div class="mblock"><div class="mon">${y}-${pad(m)}</div><div class="wk wk-m">${WD.map(x=>`<span>${x}</span>`).join('')}</div><div class="cal">${cells}</div></div>`);
+  }
+  let detail='';
+  if(uiFlag.cd){
+    const d=uiFlag.cd, lg=P.log[d], st=stateOf(d);
+    const label=st==='fut'?'還沒到':st==='done'?'完成':st==='part'?'練習了一部分':isRest(d)?'休息日':'沒有背';
+    detail=`<div class="card stack caldetail">
+      <div class="row between"><b>${mmdd(d)}　週${WD[wdayOf(d)]}</b><span class="row"><span class="tag ${st==='done'?'known':st==='part'?'learning':''}">${label}</span><button class="iconbtn" data-a="calday" data-d="${d}" aria-label="關閉">✕</button></span></div>
+      ${lg&&lg.tot?`<p class="note">新字 ${lg.nw}・複習 ${lg.rv}・答對 ${lg.ok}/${lg.tot}</p>`:st==='fut'?'':'<p class="note">這天沒有背誦紀錄。</p>'}</div>`;
+  }
+  return `<div class="wrap fluid" ${uiFlag.cd?'style="padding-bottom:110px"':''}>${backBtn()}
+    <div class="calhead"><div class="bignum">${sc}<small>天</small></div><span class="note">連續打卡</span></div>
+    <div class="wk wk-top">${WD.map(x=>`<span>${x}</span>`).join('')}</div>
+    <div class="g2 months">${months.join('')}</div>
+    <p class="note" style="text-align:center">深綠：完成　淺綠：練習了一部分　休：休息日。點日期看當天紀錄。</p>
+  </div>${detail}`;
+}
+
+/* ---------- 畫面：練習 ---------- */
+function viewSession(){
+  const e=S.queue[0], it=itemOf(e.id), q=S.q;
+  const done=S.total-S.firstLeft, pct=Math.round(done/S.total*100);
+  const head=`<div class="stack" style="gap:8px">
+    <div class="row between"><button class="btn ghost small" data-a="${S.scope?'open-set':'home'}" data-id="${S.scope||''}">離開</button><span class="note">${done}／${S.total}${S.practice?'・加強練習':''}</span></div>
+    <div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div></div>`;
+  if(S.phase==='intro'){
+    return `<div class="wrap">${head}<span class="tag" style="align-self:flex-start">新字</span>${wordCard(it)}
+      <button class="btn block" data-a="intro-go">我記住了，來練習</button></div>`;
+  }
+  const fb=S.phase==='fb', right=fb&&S.last.correct;
+  let body='';
+  if(q.type==='en2zh'){
+    body=`<div class="card idx stack"><div class="row between"><div class="stack" style="gap:6px;min-width:0"><div class="word">${esc(it.w)}</div>${it.kk?`<div class="kk">[${esc(it.kk)}]</div>`:''}</div>${spkBtn(it.w)}</div>
+      <div class="row">${posTag(it)}<span class="note">選出正確的中文</span></div></div>`+optsHTML(q,fb);
+  }else if(q.type==='zh2en'){
+    body=`<div class="card idx stack"><div class="zh" style="font-size:1.5rem">${esc(it.zh)}</div><div class="row">${posTag(it)}<span class="note">選出正確的英文</span></div></div>`+optsHTML(q,fb);
+  }else if(q.type==='listen'){
+    body=`<div class="card idx stack" style="align-items:center"><span class="note">聽一聽，選出你聽到的字</span>${spkBtn(it.w,'big')}</div>`+optsHTML(q,fb);
+  }else if(q.type==='spell'){
+    const hint=it.w[0]+' '+Array(it.w.length-1).fill('_').join(' ');
+    body=`<div class="card idx stack"><div class="zh" style="font-size:1.5rem">${esc(it.zh)}</div><div class="row">${posTag(it)}<span class="note">拼出這個英文單字（${it.w.length} 個字母）</span></div>
+      <div class="kk" style="letter-spacing:.15em">${esc(hint)}</div>${spkBtn(it.w)}</div>`+typedHTML(fb);
+  }else{
+    const sent=esc(it.ex).replace(esc(clozeOf(it)),'<span class="blank"></span>');
+    body=`<div class="card idx stack"><div class="ex"><span class="en" style="font-size:1.15rem">${sent}</span>${it.exzh?`<span class="cn">${esc(it.exzh)}</span>`:`<span class="cn">${esc(it.zh)}</span>`}</div>
+      <div class="row">${posTag(it)}<span class="note">填入適當的字（提示：${esc(it.w)}，注意字形）</span></div></div>`+typedHTML(fb);
+  }
+  let result='';
+  if(fb){
+    const msg=right?(P.level==='kid'?pick(['答對了！','太棒了！','很厲害！']):'正確'):(P.level==='kid'?'沒關係，再記一次':'不正確');
+    const ans=(q.type==='spell'||q.type==='cloze')&&!right?`<p>正確答案：<b>${esc(q.type==='spell'?it.w:clozeOf(it))}</b></p>`:'';
+    result=`<div aria-live="polite" class="stack"><div class="banner ${right?'ok':'no'}">${msg}</div>${ans}${wordCard(it)}
+      ${!right&&S.queue[0].first?'<p class="note">這個字等一下會再出現一次。</p>':''}
+      <button class="btn block" data-a="next" id="nextbtn">${S.queue.length>1?'下一題':'完成'}</button></div>`;
+  }
+  return `<div class="wrap">${head}${body}${result}</div>`;
+}
+function optsHTML(q,fb){
+  return `<div class="opts">${q.opts.map((o,i)=>{
+    let cls='opt'; if(fb){ if(o.ok) cls+=' right'; else if(S.last.given===i) cls+=' wrong' }
+    return `<button class="${cls}" data-a="choose" data-i="${i}" ${fb?'disabled':''}>${esc(o.label)}</button>`;
+  }).join('')}</div>`;
+}
+function typedHTML(fb){
+  if(fb) return `<div class="card"><span class="note">你的答案：</span> <b>${esc(S.last.given||'（空白）')}</b></div>`;
+  return `<form class="stack" data-form="typed"><label for="ans" class="note">你的答案</label>
+    <input type="text" id="ans" name="ans" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+    <div class="row"><button class="btn" style="flex:1" type="submit">送出</button><button class="btn ghost" type="button" data-a="skip">不知道</button></div></form>`;
+}
+
+function viewDone(){
+  const t=todayStr(), kid=P.level==='kid';
+  if(S.scope){
+    const s=findSet(S.scope), items=s?s.items:[];
+    const tm=items.filter(x=>P.cards[x.id]&&P.cards[x.id].due<=addDays(t,1)).length;
+    return `<div class="wrap"><div class="card idx stack">
+      <h1 class="title">${kid?'這本練完了！':'練習完成'}</h1>
+      <div class="grid3"><div class="stat"><b>${S.ok}/${S.tot}</b><span>第一次就答對</span></div>
+        <div class="stat"><b>${tm}</b><span>明天要複習</span></div></div>
+      ${S.ok<S.tot?'<p class="lead">答錯的字會比較快再出現，多看幾次就會記住。</p>':''}</div>
+      <button class="btn block" data-a="open-set" data-id="${S.scope}">回單字本</button>
+      <button class="btn ghost block" data-a="home">回首頁</button></div>`;
+  }
+  const tomorrow=hwItems().filter(d=>P.cards[d.id]&&P.cards[d.id].due<=addDays(t,1)).length;
+  return `<div class="wrap"><div class="card idx stack">
+    <h1 class="title">${S.practice?'練習結束':'恭喜你！今天的單字背完了🎉🎉'}</h1>
+    <div class="grid3"><div class="stat"><b>${S.ok}/${S.tot}</b><span>第一次就答對</span></div>
+      <div class="stat"><b>${streakCount()}</b><span>連續天數</span></div>
+      <div class="stat"><b>${tomorrow}</b><span>明天要複習</span></div></div>
+    ${S.ok<S.tot?'<p class="lead">答錯的字會比較快再出現，多看幾次就會記住。</p>':''}
+  </div>
+  <button class="btn block" data-a="report">回報給老師</button>
+  <button class="btn ghost block" data-a="home">回首頁</button></div>`;
+}
+
+/* ---------- 畫面：單字本內頁 ---------- */
+function viewSet(){
+  const s=findSet(uiFlag.setId);
+  if(!s){ view='home'; return viewHome() }
+  const ro=!P.sets.includes(s);
+  const tab=uiFlag.addTab==='bulk'?'bulk':'one', pl=planSet(s), n=s.items.length, learnedN=s.items.filter(x=>P.cards[x.id]).length, remain=pl.rev.length+pl.nw.length;
+  return `<div class="wrap fluid"><div class="g2 set"><div class="col">
+    <div class="row between"><button class="back" data-a="set-back" aria-label="返回">${IC.back}</button><span class="tag">${n} 個字</span></div>
+    <h1 class="title">${esc(s.name)}</h1>${ro?'<p class="note">老師的單字本，只能背、不能修改。</p>':''}
+    <div class="card stack">
+      ${n===0?'<p class="lead">這本還沒有單字，先在下面加幾個。</p>'
+        :remain?`<button class="btn block" data-a="start-set" data-id="${s.id}">開始：複習 ${pl.rev.length} 字・新字 ${pl.nw.length} 字</button>`
+        :`<p class="lead">今天這本練完了。</p>${learnedN?`<button class="btn ghost block" data-a="practice-set" data-id="${s.id}">再練一輪（不影響排程）</button>`:''}`}
+      ${n?`<button class="btn ghost block" data-a="flip" data-id="${s.id}">翻單字卡</button>`:''}
+    </div>
+    ${ro?'':`<div class="card stack">
+      <div class="row" role="group" aria-label="新增方式">
+        <button class="btn ghost small ${tab==='one'?'on':''}" data-a="addtab" data-v="one" aria-pressed="${tab==='one'}">一個一個加</button>
+        <button class="btn ghost small ${tab==='bulk'?'on':''}" data-a="addtab" data-v="bulk" aria-pressed="${tab==='bulk'}">一次貼上很多字</button>
+      </div>
+      ${tab==='one'?`<form class="stack" data-form="addword">
+        <div class="two">
+          <div class="stack" style="gap:4px"><label class="note" for="nw">英文</label><input type="text" id="nw" name="nw" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false" required></div>
+          <div class="stack" style="gap:4px"><label class="note" for="nz">中文</label><input type="text" id="nz" name="nz" maxlength="30" autocomplete="off" required></div>
+        </div>
+        <div class="stack" style="gap:4px"><label class="note" for="ne">例句（選填）</label><input type="text" id="ne" name="ne" maxlength="120" autocomplete="off" spellcheck="false"></div>
+        <button class="btn" type="submit">加入</button></form>`
+      :`<div class="stack"><p class="note">每行一個。英文和中文的順序都可以，中間用逗號、冒號、Tab 或空格隔開。</p>
+        <textarea id="bulk" aria-label="一次貼上很多字" placeholder="apple, 蘋果&#10;香蕉：banana&#10;make a profit 獲利"></textarea>
+        <button class="btn" data-a="bulk" data-id="${s.id}">加入</button></div>`}
+      <p class="note" style="color:var(--bad)" aria-live="polite">${esc(uiFlag.err||'')}</p>
+      ${uiFlag.msg?`<p class="note" aria-live="polite">${esc(uiFlag.msg)}</p>`:''}
+    </div>`}
+    </div><div class="col">
+    <div class="list">${s.items.map(it=>{
+      const sg=stage(P.cards[it.id]), conf=uiFlag.delw===it.id;
+      return `<div class="item"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.6em 1em;min-height:52px">
+        <span style="min-width:0"><b>${esc(it.w)}</b> <span class="note">${esc(it.zh)}</span>${it.ex?`<br><span class="note">${esc(it.ex)}</span>`:''}</span>
+        <span class="row" style="flex:none"><span class="tag ${sg}">${STAGE_ZH[sg]}</span>
+        ${ro?'':`<button class="btn ghost small" data-a="delword" data-id="${it.id}" aria-label="刪除 ${esc(it.w)}">${conf?'確定刪除':'刪除'}</button>`}</span></div></div>`;
+    }).join('')}</div>
+    ${ro?'':`<details class="card" data-cfg ${(uiFlag.delset||uiFlag.cfg)?'open':''}><summary><b>單字本設定</b></summary><div class="stack" style="margin-top:10px">
+      <form class="row" data-form="rename"><input type="text" id="rn" name="rn" value="${esc(s.name)}" maxlength="20" style="flex:1 1 160px" aria-label="單字本名稱"><button class="btn ghost small" type="submit">改名</button></form>
+      ${uiFlag.delset?`<div class="row"><span class="note">刪除「${esc(s.name)}」和裡面的 ${n} 個字？</span><button class="btn small" data-a="delset-yes" data-id="${s.id}">確定刪除</button><button class="btn ghost small" data-a="delset-no">取消</button></div>`
+        :`<button class="btn ghost small" style="align-self:flex-start" data-a="delset">刪除這本單字本</button>`}
+    </div></details>`}</div></div></div>`;
+}
+function viewFlip(){
+  const s=findSet(uiFlag.setId);
+  if(!s||!s.items.length){ view='home'; return viewHome() }
+  const i=clamp(uiFlag.fi||0,0,s.items.length-1), it=s.items[i], back=!!uiFlag.ff;
+  return `<div class="wrap"><div class="row between"><button class="btn ghost small" data-a="open-set" data-id="${s.id}">返回</button><span class="note">${i+1}／${s.items.length}</span></div>
+    <button class="card idx flipcard" data-a="flipcard" aria-label="點一下翻面">
+      ${back?`<span class="zh" style="font-size:1.8rem">${esc(it.zh)}</span>${it.ex?`<span class="ex"><span class="en">${esc(it.ex)}</span></span>`:''}`
+            :`<span class="word">${esc(it.w)}</span>`}
+      <span class="note">點一下翻面</span></button>
+    <div class="row" style="justify-content:center">${spkBtn(it.w)}</div>
+    <div class="row"><button class="btn ghost" style="flex:1" data-a="fprev" ${i===0?'disabled':''}>上一張</button><button class="btn" style="flex:1" data-a="fnext" ${i===s.items.length-1?'disabled':''}>下一張</button></div></div>`;
+}
+
+/* ---------- 畫面：單字本 / 回報 ---------- */
+function viewBrowse(){
+  return `<div class="wrap fluid">${backBtn()}<h1 class="pgtitle">功課單字</h1>
+  <div class="list grid2">${hwItems().map(it=>{
+    const c=P.cards[it.id], sg=stage(c), open=uiFlag.open===it.id;
+    return `<div class="item"><button data-a="toggle" data-id="${it.id}" aria-expanded="${open}">
+      <span><b>${esc(it.w)}</b> ${posTag(it)} <span class="note">${esc(it.zh)}</span></span>
+      <span class="tag ${sg}">${STAGE_ZH[sg]}</span></button>
+      ${open?`<div class="detail">${wordCard(it,{extra:`<p class="note">${dueText(c)}</p>`}).replace('card idx stack','stack')}</div>`:''}</div>`;
+  }).join('')}</div></div>`;
+}
+function makeReport(){
+  const t=todayStr(), lg=logOf(t), H=hwItems(), known=H.filter(d=>stage(P.cards[d.id])==='known').length;
+  const wk=H.filter(d=>P.cards[d.id]&&P.cards[d.id].wrong>0).sort((a,b)=>P.cards[b.id].wrong-P.cards[a.id].wrong).slice(0,5).map(d=>d.id);
+  const mine=P.sets.flatMap(s=>s.items);
+  const o=LASTO={v:1,n:P.nick,c:P.code||'',d:t,nw:lg.nw,rv:lg.rv,ok:lg.ok,tot:lg.tot,st:streakCount(),kn:known,hn:H.length,wk,dn:!!lg.done,rd:P.rest.days,
+    uc:mine.length,us:P.sets.length,un:mine.slice(-10).map(x=>[x.w,x.zh])};
+  const code='VR1:'+btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+  const text=`【單字回報】${P.nick}｜${mmdd(t)}\n新字 ${lg.nw}、複習 ${lg.rv}、答對 ${lg.ok}/${lg.tot}${lg.done?'（今日完成）':'（尚未完成）'}\n連續 ${streakCount()} 天｜熟悉 ${known}/${H.length}｜休息日 ${dayNames(P.rest.days)}${mine.length?`\n自建單字 ${mine.length} 個（${P.sets.length} 本）`:''}\n${code}`;
+  return text;
+}
+function viewReport(){
+  return `<div class="wrap">${backBtn()}<h1 class="pgtitle">回報給老師</h1>
+  <div class="card stack"><p class="lead">按「複製」，再貼到 LINE 傳給老師。</p>
+    <textarea id="rep" readonly aria-label="回報內容">${esc(makeReport())}</textarea>
+    <button class="btn" data-a="copy">複製</button><div class="toast" id="toast" aria-live="polite"></div></div></div>`;
+}
+
+/* ---------- 畫面：老師 ---------- */
+let T=load(TKEY)||{reports:{}};
+if(T.draft&&JSON.stringify(T.draft)===JSON.stringify(EMBED)){ delete T.draft; save(TKEY,T) }
+function parseReports(text){
+  const re=/VR1:([A-Za-z0-9+\/=]+)/g; let m, n=0;
+  while((m=re.exec(text))){
+    try{ const o=JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+      if(o&&o.v===1&&o.n&&o.d){ T.reports[(o.c||o.n)+'|'+o.d]=o; n++ } }catch(e){}
+  }
+  save(TKEY,T); return n;
+}
+const RESET_CSS=':root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}';
+function buildDoc(){
+  const css=document.getElementById('appcss').textContent, js=document.getElementById('appjs').textContent;
+  const data=JSON.stringify(OFF).replace(/</g,'\\u003c');
+  return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>'+RESET_CSS+'</style></head><body>\n'
+    +'<title>每日單字</title>\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="claude:viewport-fit-sides" content="cover">\n'
+    +'<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">\n'
+    +'<style id="appcss">'+css+'</style>\n<div id="app"></div>\n'
+    +'<script type="application/json" id="offdata">'+data+'</'+'script>\n<script id="appjs">'+js+'</'+'script>\n</body></html>';
+}
+function linkUrls(lk){
+  const base=/^https?:/.test(location.href)?location.href.split('#')[0]:'';
+  return {s:base+'#'+lk.lv+'-'+lk.code, p:base+'#parent-'+lk.code};
+}
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); return true }catch(e){}
+  try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    const ok=document.execCommand('copy'); ta.remove(); return ok }catch(e){ return false }
+}
+/* ---------- 家長頁(只讀) ---------- */
+let PV={state:'idle',data:null};
+const parentCode=()=>{ const m=/^#parent-([a-z0-9]{1,16})$/i.exec(location.hash); return m?m[1].toLowerCase():null };
+async function loadParent(){
+  const c=parentCode(); if(!c||!cloud){ PV={state:cloud?'idle':'nocloud',data:null}; return }
+  PV={state:'loading',data:null};
+  try{ const r=await jget('action=child&code='+c); PV=r&&r.rows?{state:'ok',data:r}:{state:'empty',data:null} }catch(e){ PV={state:'err',data:null} }
+}
+function viewParent(){
+  const head=t=>`<div class="wrap fluid"><div class="hero"><div class="toprow"><h1 class="pgtitle">${t}</h1>${themeSeg()}</div></div>`;
+  if(PV.state==='nocloud') return head('孩子的單字進度')+'<p class="lead">這個頁面需要雲端版才能顯示進度。</p></div>';
+  if(PV.state==='loading'||PV.state==='idle') return head('孩子的單字進度')+'<p class="lead">載入中…</p></div>';
+  if(PV.state==='err') return head('孩子的單字進度')+'<p class="lead">暫時連不上，請稍後重新整理。</p></div>';
+  if(PV.state==='empty') return head('孩子的單字進度')+'<p class="lead">還沒有紀錄。孩子打開自己的連結、背完一次之後，這裡就會出現進度。</p></div>';
+  const d=PV.data, rows=d.rows, by={}; rows.forEach(r=>{ by[r.d]=r });
+  const t=todayStr(), last=rows[0], rd=last.rd||[], tr=by[t];
+  const rest=x=>rd.includes(wdayOf(x));
+  const mark=x=>{ const r=by[x];
+    if(r&&r.dn) return ['✓','完成'];
+    if(r&&r.hn===0) return ['—','沒功課'];
+    if(rest(x)) return ['休','休息日'];
+    if(r&&r.nw+r.rv>0) return ['△','練習了一部分'];
+    if(x===t) return ['…','今天還沒開始'];
+    return ['✗','沒有背'] };
+  const days=[]; for(let i=6;i>=0;i--) days.push(addDays(t,-i));
+  const wk=days.map(x=>by[x]).filter(Boolean), sum=k=>wk.reduce((a,r)=>a+(r[k]||0),0);
+  let status;
+  if(tr&&tr.dn) status=['完成','今天的單字背完了。'];
+  else if(tr&&tr.hn===0) status=['沒功課','老師目前還沒有出功課。'];
+  else if(rest(t)) status=['休息日','今天是休息日，不用背單字。'];
+  else if(tr&&tr.nw+tr.rv>0) status=['進行中','今天背了一部分，還沒完成。'];
+  else status=['還沒背','今天還沒開始背。'];
+  const ago=Math.round(dnum(t)-dnum(last.d));
+  return `<div class="wrap fluid"><div class="hero"><div class="toprow"><h1 class="pgtitle">${esc(d.name||'孩子')} 的單字進度</h1>${themeSeg()}</div></div>
+    <div class="g2 par"><div class="card idx stack"><div class="row between"><h2>今天</h2><span class="tag ${status[0]==='完成'?'known':status[0]==='還沒背'?'learning':''}">${status[0]}</span></div>
+      <p>${status[1]}</p><div class="nums"><div><b>${last.st}</b><span>連續天數</span></div><div><b>${last.hn?last.kn+'/'+last.hn:'—'}</b><span>功課熟悉</span></div><div><b>${sum('tot')?Math.round(sum('ok')/sum('tot')*100)+'%':'—'}</b><span>本週答對率</span></div></div>
+      ${ago>0?`<p class="note">最近一次更新是 ${ago===1?'昨天':mmdd(last.d)}。</p>`:''}</div>
+    <div class="card stack"><h2>最近 7 天</h2>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center">${days.map(x=>{ const m=mark(x); return `<div style="border:var(--bw) solid var(--line);border-radius:var(--radius);padding:.4em 0"><div class="note">${esc(mmdd(x))}<br>週${WD[wdayOf(x)]}</div><div style="font-size:1.3rem;font-weight:700" aria-label="${m[1]}">${m[0]}</div></div>` }).join('')}</div>
+      <p class="note">✓ 完成　△ 練習了一部分　✗ 沒有背　休 休息日　— 沒功課</p>
+      <p class="note">這 7 天共背新字 ${sum('nw')} 個、複習 ${sum('rv')} 次。</p></div></div>
+    <p class="note">此頁面僅供追蹤學習進度，無法編輯。進度會在孩子完成練習後更新。</p></div>`;
+}
+function pubCard(){
+  const dirty=isDirty();
+  if(cloud) return `<div class="card stack"><div class="row between"><h2>儲存到雲端</h2>${dirty?'<span class="flag">有未儲存的修改</span>':'<span class="tag known">已是最新</span>'}</div>
+    <p class="note">單字本和功課改完後，按「儲存」會寫進你的 Google 試算表，學生重新整理就看到。</p>
+    <div class="stack" style="gap:4px"><label class="note" for="tsecret">老師密碼（和試算表 Config 分頁裡的 secret 相同）</label><input type="password" id="tsecret" autocomplete="off" value="${esc(T.secret||'')}"></div>
+    <div class="row"><button class="btn" data-a="csave" ${dirty?'':'disabled'}>儲存</button>
+      ${dirty?'<button class="btn ghost small" data-a="discard">捨棄修改</button>':''}
+      <button class="btn ghost small" data-a="creload">重新載入雲端資料</button></div>
+    <p class="note" aria-live="polite">${esc(uiFlag.pub||'')}</p></div>`;
+  return `<div class="card stack"><div class="row between"><h2>發布給學生</h2>${dirty?'<span class="flag">有未發布的修改</span>':'<span class="tag known">已是最新</span>'}</div>
+    <p class="note">單字本和功課改完後，要按「發布」，學生重新整理頁面才會看到。沒發布前，修改只存在這個瀏覽器。</p>
+    <div class="row"><button class="btn" data-a="publish" ${dirty?'':'disabled'}>發布</button>
+      ${dirty?'<button class="btn ghost small" data-a="discard">捨棄修改</button>':''}
+      <button class="btn ghost small" data-a="exportoff">${uiFlag.exp?'收起資料':'匯出資料'}</button></div>
+    <p class="note" aria-live="polite">${esc(uiFlag.pub||'')}</p>
+    ${uiFlag.exp?`<textarea readonly id="exp" aria-label="單字本資料">${esc(JSON.stringify(OFF))}</textarea><p class="note">無法直接發布時，把這段資料貼給 Claude，請它更新網頁。</p>`:''}</div>`;
+}
+function officialAdmin(){
+  const rows=OFF.sets.map(s=>`<div class="row between" style="border-bottom:1px solid var(--line);padding:.4em 0"><span><b>${esc(s.name)}</b> <span class="note">${s.items.length} 個字・${s.hidden?'不公開（只用來出功課）':'學生看得到'}</span></span><button class="btn ghost small" data-a="tset-open" data-id="${s.id}">編輯</button></div>`).join('');
+  return `<div class="card stack"><h2>官方單字本</h2>
+    <p class="note">這裡建立的單字本，全部學生都會在「選單字本」頁的書桌看到，可以自己挑來背。也可以設成「不公開」，只拿來出功課。</p>
+    ${rows||'<p class="lead">還沒有單字本。</p>'}
+    <form class="row" data-form="tnewset"><input type="text" id="tsname" name="tsname" maxlength="30" placeholder="新單字本名稱，例如：國中必備字 1" style="flex:1 1 220px" aria-label="新單字本名稱"><button class="btn small" type="submit">新增</button></form></div>`;
+}
+function hwAdmin(rows){
+  const codes=[...new Set(rows.map(r=>r.c).filter(Boolean).concat(Object.keys(OFF.hw).filter(k=>k!=='*')))];
+  const keys=Object.keys(OFF.hw).sort((a,b)=>a==='*'?-1:b==='*'?1:a.localeCompare(b));
+  const list=keys.map(k=>`<div class="stack" style="gap:6px"><b>${k==='*'?'全部學生':esc(k)}</b>${OFF.hw[k].map(h=>{ const s=OFF.sets.find(x=>x.id===h.set);
+    return `<div class="row between"><span>${s?esc(s.name)+` <span class="note">${s.items.length} 個字</span>`:'（單字本已刪除）'}</span><button class="btn ghost small" data-a="hwdel" data-code="${esc(k)}" data-id="${h.id}">取消</button></div>` }).join('')}</div>`).join('');
+  return `<div class="card stack"><h2>出功課</h2>
+    <p class="note">輸入學生代碼（專屬連結裡 kid- 或 teen- 後面那段），選一本單字本，那位學生發布後就會有每日任務（新字＋複習）。代碼輸入 * 代表全部學生。沒有指派功課的學生，一進去沒有一定要背的字。</p>
+    <form class="row" data-form="hwadd">
+      <input type="text" id="hwcode" name="hwcode" list="hwcodes" maxlength="16" placeholder="學生代碼，或 *" autocomplete="off" autocapitalize="none" style="flex:1 1 150px" aria-label="學生代碼">
+      <datalist id="hwcodes">${codes.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+      <select name="hwset" aria-label="單字本" style="flex:1 1 160px">${OFF.sets.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
+      <button class="btn small" type="submit">指派</button></form>
+    <p class="note" style="color:var(--bad)" aria-live="polite">${esc(uiFlag.hwerr||'')}</p>
+    ${list||'<p class="lead">還沒有指派任何功課。</p>'}</div>`;
+}
+function viewTSet(){
+  const s=OFF.sets.find(x=>x.id===uiFlag.tset);
+  if(!s){ uiFlag.tset=null; return viewTeacher() }
+  const tab=uiFlag.addTab==='bulk'?'bulk':'one';
+  const fld=(id,lab,ph)=>`<div class="stack" style="gap:4px"><label class="note" for="${id}">${lab}</label><input type="text" id="${id}" name="${id}" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="${ph||''}"></div>`;
+  return `<div class="wrap wide">
+    <div class="toprow"><button class="btn ghost small" data-a="tset-back">返回老師頁</button>${themeSeg()}</div>
+    <div class="row between"><span class="tag">${s.items.length} 個字・${s.hidden?'不公開':'學生看得到'}</span></div>
+    <h1 class="title">${esc(s.name)}</h1>
+    <div class="g2 tset"><div class="t-l">${pubCard()}</div>
+    <div class="t-l"><div class="card stack">
+      <div class="row" role="group" aria-label="新增方式">
+        <button class="btn ghost small ${tab==='one'?'on':''}" data-a="addtab" data-v="one" aria-pressed="${tab==='one'}">一個一個加</button>
+        <button class="btn ghost small ${tab==='bulk'?'on':''}" data-a="addtab" data-v="bulk" aria-pressed="${tab==='bulk'}">一次貼上很多字</button>
+      </div>
+      ${tab==='one'?`<form class="stack" data-form="taddword">
+        <div class="two">${fld('tw','英文')}${fld('tz','中文')}</div>
+        <div class="two">${fld('tp','詞性（選填）','n. / v. / adj.')}${fld('tk','KK 音標（選填）')}</div>
+        ${fld('te','例句（選填）')}${fld('tx','例句中譯（選填）')}${fld('tc','搭配用法（選填）')}
+        <button class="btn" type="submit">加入</button></form>`
+      :`<div class="stack"><p class="note">每行一個，英文和中文的順序都可以。貼上的字只有英文和中文；要加音標、例句，可以事後一個一個補，或把教材交給 Claude 整理。</p>
+        <textarea id="tbulk" aria-label="一次貼上很多字" placeholder="apple, 蘋果&#10;香蕉：banana"></textarea>
+        <button class="btn" data-a="tbulk">加入</button></div>`}
+      <p class="note" style="color:var(--bad)" aria-live="polite">${esc(uiFlag.err||'')}</p>
+      ${uiFlag.msg?`<p class="note" aria-live="polite">${esc(uiFlag.msg)}</p>`:''}
+    </div></div>
+    <div class="t-r"><div class="card stack"><div class="scroll"><table><thead><tr><th>單字</th><th>詞性</th><th>中文</th><th>KK</th><th>例句</th><th></th></tr></thead><tbody>
+      ${s.items.map(it=>`<tr><td><b>${esc(it.w)}</b></td><td>${esc(it.pos||'')}</td><td>${esc(it.zh)}</td><td>${it.kk?'['+esc(it.kk)+'] ':''}${it.kkCheck?'<span class="flag">待確認</span>':''}</td><td>${esc(it.ex||'')}${it.exzh?`<br><span class="note">${esc(it.exzh)}</span>`:''}</td>
+        <td><button class="btn ghost small" data-a="tdelword" data-id="${it.id}" aria-label="刪除 ${esc(it.w)}">${uiFlag.delw===it.id?'確定刪除':'刪除'}</button></td></tr>`).join('')||'<tr><td colspan="6" class="note">還沒有單字。</td></tr>'}
+    </tbody></table></div></div></div>
+    <div class="t-l"><details class="card" data-cfg ${(uiFlag.delset||uiFlag.cfg)?'open':''}><summary><b>單字本設定</b></summary><div class="stack" style="margin-top:10px">
+      <form class="row" data-form="trename"><input type="text" id="trn" name="trn" value="${esc(s.name)}" maxlength="30" style="flex:1 1 220px" aria-label="單字本名稱"><button class="btn ghost small" type="submit">改名</button></form>
+      <div class="row"><button class="btn ghost small" data-a="thide">${s.hidden?'改成公開（學生看得到）':'改成不公開（只用來出功課）'}</button></div>
+      ${uiFlag.delset?`<div class="row"><span class="note">刪除「${esc(s.name)}」和裡面的 ${s.items.length} 個字？已指派的功課也會一併取消。</span><button class="btn small" data-a="tdelset-yes">確定刪除</button><button class="btn ghost small" data-a="tdelset-no">取消</button></div>`
+        :`<button class="btn ghost small" style="align-self:flex-start" data-a="tdelset">刪除這本單字本</button>`}
+    </div></details></div></div></div>`;
+}
+function addOff(sid,o){
+  const s=OFF.sets.find(x=>x.id===sid); if(!s) return '找不到這本單字本。';
+  if(hasCJK(o.w)&&ENG.test(o.zh)){ const x=o.w; o.w=o.zh; o.zh=x }
+  if(!WORD_RE.test(o.w)) return '英文欄請輸入英文字母（可以有空格、連字號）。';
+  if(!o.zh) return '請輸入中文意思。';
+  if(s.items.length>=500) return '這本已經有 500 個字，請另開一本。';
+  if(s.items.some(x=>x.w.toLowerCase()===o.w.toLowerCase()&&(x.pos||'')===(o.pos||'')&&x.zh===o.zh)) return o.w+' 已經在這本裡了。';
+  mut(()=>{ const t=OFF.sets.find(x=>x.id===sid), it={id:'w'+(++OFF.seq),w:o.w,zh:o.zh};
+    ['pos','kk','colloc','ex','exzh'].forEach(k=>{ if(o[k]) it[k]=o[k] }); t.items.push(it) });
+  return null;
+}
+function viewTeacher(){
+  if(uiFlag.tset) return viewTSet();
+  const t=todayStr(), latest={};
+  Object.values(T.reports).forEach(r=>{ const k=r.c||r.n; if(!latest[k]||r.d>latest[k].d) latest[k]=r });
+  const rows=Object.values(latest).sort((a,b)=>a.n.localeCompare(b.n,'zh-Hant'));
+  const wk={}; rows.forEach(r=>(r.wk||[]).forEach(id=>{ wk[id]=(wk[id]||0)+1 }));
+  const weak=Object.entries(wk).sort((a,b)=>b[1]-a[1]).slice(0,5).filter(x=>BYID[x[0]]);
+  return `<div class="wrap wide"><div class="toprow"><h1 class="title">老師頁</h1>${themeSeg()}</div>
+  <div class="g2 tmain">
+  <div class="col">${pubCard()}${officialAdmin()}${hwAdmin(rows)}</div>
+  <div class="col"><div class="card stack"><h2>學生回報</h2>
+    <p class="note">學生按「回報給老師」複製的文字，貼在下面（可一次貼多位）。</p>
+    <textarea id="paste" placeholder="貼上學生傳來的回報…" aria-label="貼上學生回報"></textarea>
+    <div class="row">${cloud?'<button class="btn" data-a="greports">更新學生回報</button>':''}<button class="btn ${cloud?'ghost small':''}" data-a="import">${cloud?'手動貼上匯入':'匯入'}</button><span class="toast" id="toast" aria-live="polite">${uiFlag.msg||''}</span></div>
+    ${rows.length?`<div class="scroll"><table><thead><tr><th>暱稱</th><th>回報日</th><th>新字</th><th>複習</th><th>答對</th><th>連續</th><th>熟悉</th><th>休息日</th><th>自建</th><th>狀態</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${esc(r.name||r.n)}${r.name&&r.name!==r.n?` <span class="note">暱稱 ${esc(r.n)}</span>`:''}${r.c?` <span class="note">${esc(r.c)}</span>`:''}</td><td>${r.d===t?'今天':esc(mmdd(r.d))}</td><td class="num">${r.nw}</td><td class="num">${r.rv}</td><td class="num">${r.ok}/${r.tot}</td><td class="num">${r.st} 天</td><td class="num">${r.kn}/${r.hn!=null?r.hn:'—'}</td><td>${r.rd?esc(dayNames(r.rd)):'—'}</td><td class="num">${r.uc||0}</td><td>${r.d!==t?((r.rd||[]).includes(wdayOf(t))?'今天休息':'<span class="flag">今天未回報</span>'):(r.dn?'完成':((r.rd||[]).includes(wdayOf(t))?'今天休息':(r.hn===0?'沒有功課':'未完成')))}</td></tr>`).join('')}
+    </tbody></table></div>`:'<p class="lead">還沒有回報。</p>'}
+    ${weak.length?`<div><h2>最常答錯</h2><p>${weak.map(([id,n])=>`<b>${esc(BYID[id].w)}</b> <span class="note">${esc(BYID[id].pos||'')}・${n} 人</span>`).join('　')}</p></div>`:''}
+    ${rows.some(r=>r.uc)?`<div><h2>學生自建的單字（最近新增）</h2><div class="stack" style="gap:6px;margin-top:6px">${rows.filter(r=>r.uc).map(r=>`<details><summary><b>${esc(r.n)}</b> <span class="note">${r.uc} 個・${r.us} 本</span></summary><p class="note" style="margin-top:6px">${(r.un||[]).map(x=>esc(x[0])+' '+esc(x[1])).join('、')}</p></details>`).join('')}</div></div>`:''}
+    ${rows.length?`<div>${uiFlag.clr?`<span class="note">清空所有回報？</span> <button class="btn small" data-a="clr-yes">確定</button> <button class="btn ghost small" data-a="clr-no">取消</button>`:'<button class="btn ghost small" data-a="clr">清空回報</button>'}</div>`:''}
+  </div>
+  <div class="card stack"><h2>學生專屬連結</h2>
+    <p class="note">輸入代碼和學生全名後按「產生」，會一次做出學生連結和家長連結，各有一顆複製按鈕。家長頁只會顯示你填的全名，不會顯示學生自己取的暱稱。每個代碼各有一份進度，兄弟姊妹共用一支手機也不會混在一起；介面（國小／國中・高中）由連結決定。出功課時用的就是這個代碼。家長連結只能看進度，不能修改。</p>
+    <form class="row" data-form="mklink">
+      <input type="text" id="lkcode" name="lkcode" maxlength="16" placeholder="代碼（英文小寫或數字），例如 amy1" autocomplete="off" autocapitalize="none" style="flex:1 1 180px" aria-label="學生代碼">
+      <input type="text" id="lkwho" name="lkwho" maxlength="20" placeholder="學生全名（家長頁會顯示）" autocomplete="off" style="flex:1 1 180px" aria-label="學生全名">
+      <select id="lklv" name="lklv" aria-label="介面"><option value="kid">國小</option><option value="teen">國中・高中</option></select>
+      <button class="btn small" type="submit">產生</button></form>
+    ${uiFlag.lk?(()=>{ const u=linkUrls(uiFlag.lk); return `<div class="stack" style="gap:8px">
+      <div class="row"><span style="flex:0 0 4.5em"><b>學生</b></span><input type="text" readonly value="${esc(u.s)}" style="flex:1 1 200px" aria-label="學生連結"><button class="btn small" data-a="copyl" data-k="s">複製</button></div>
+      <div class="row"><span style="flex:0 0 4.5em"><b>家長</b></span><input type="text" readonly value="${esc(u.p)}" style="flex:1 1 200px" aria-label="家長連結"><button class="btn small" data-a="copyl" data-k="p">複製</button></div>
+      <button class="btn ghost" data-a="copyl" data-k="m">複製「要傳給家長的訊息」（含兩個連結）</button>
+      <p class="note" aria-live="polite">${esc(uiFlag.copied||'')}</p>
+      ${uiFlag.nameMsg?`<p class="note" aria-live="polite">${esc(uiFlag.nameMsg)}</p>`:''}</div>`})():''}
+    ${uiFlag.linkerr?`<p class="note" style="color:var(--bad)">${esc(uiFlag.linkerr)}</p>`:''}
+    ${uiFlag.warn?`<p class="banner no" role="alert">${esc(uiFlag.warn)}</p>`:''}
+    ${Object.keys(T.codes||{}).length?`<details><summary><b>已產生過的代碼</b> <span class="note">${Object.keys(T.codes).length} 個</span></summary><p class="note" style="margin-top:6px">${Object.entries(T.codes).sort((a,b)=>a[0].localeCompare(b[0])).map(([c,v])=>`${esc(c)}${v.who?`（${esc(v.who)}）`:''}・${v.lv==='kid'?'國小':'國中高中'}`).join('　')}</p></details>`:''}
+    <p class="note">這個連結只用來區分是誰，不是密碼。進度存在學生自己的手機或電腦裡，換裝置會從頭開始，老師看到的進度來自學生的回報。</p></div></div>
+  </div></div>`;
+}
+
+/* ---------- 繪製與事件 ---------- */
+const app=document.getElementById('app');
+function route(){
+  if(location.hash==='#teacher') return 'teacher';
+  if(parentCode()) return 'parent';
+  if(!P) return 'setup';
+  return view==='teacher'||view==='setup'?'home':view;
+}
+function render(){
+  if(P) applyRest();
+  applyLevel();
+  const v=route(); let html='';
+  document.body.classList.toggle('deco',['home','me','books','cal','parent'].includes(v));
+  document.body.classList.toggle('hastab',v==='home'||v==='me');
+  document.body.classList.toggle('hasnav',['home','me','books','cal','browse','report','set','flip'].includes(v));
+  const y0=window.scrollY;
+  if(booting&&v!=='teacher'){ app.innerHTML='<div class="wrap"><p class="lead">載入中…</p></div>'; lastKey=null; return }
+  if(v==='parent') html=viewParent();
+  else if(v==='teacher') html=viewTeacher();
+  else if(v==='setup') html=viewSetup();
+  else if(v==='session'&&S) html=viewSession();
+  else if(v==='done'&&S) html=viewDone();
+  else if(v==='me') html=viewMe();
+  else if(v==='books') html=viewBooks();
+  else if(v==='cal') html=viewCal();
+  else if(v==='set') html=viewSet();
+  else if(v==='flip') html=viewFlip();
+  else if(v==='browse') html=viewBrowse();
+  else if(v==='report') html=viewReport();
+  else html=viewHome();
+  if(['books','cal','browse','report','set','flip'].includes(v)&&!html.includes('class="tabbar')) html+=tabbar(v==='report'?'me':'home',true);
+  app.innerHTML=html;
+  const f=app.querySelector('#ans'); if(f) f.focus();
+  const nb=app.querySelector('#nextbtn'); if(nb) nb.focus({preventScroll:false});
+  /* 還停留在同一頁時(例如產生連結、切換公開、刪除)，保留捲動位置；換頁或練習換題才回到頁首 */
+  const key=v==='session'?null:v+'|'+(uiFlag.tset||'')+'|'+(uiFlag.setId||'');
+  if(key&&key===lastKey) window.scrollTo(0,y0); else window.scrollTo(0,0);
+  lastKey=key;
+}
+let lastKey=null, prevView='home', setFrom='home';
+function go(v){ view=v; uiFlag.msg=''; uiFlag.err=''; render() }
+
+app.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]'); if(!b) return;
+  const a=b.dataset.a;
+  if(a==='speak') return say(b.dataset.w);
+  if(a==='theme'){ save(THKEY,b.dataset.v); applyTheme(); render(); return }
+  if(a==='start'){ if(buildSession(false)) go('session') }
+  else if(a==='practice'){ if(buildSession(true)) go('session') }
+  else if(a==='home'){ uiFlag={}; go('home') }
+  else if(a==='me'){ uiFlag={}; go('me') }
+  else if(a==='books'||a==='cal'||a==='browse'||a==='report'){ prevView=(view==='home'||view==='me')?view:'home'; uiFlag={}; go(a) }
+  else if(a==='back'){ uiFlag={}; go(prevView) }
+  else if(a==='set-back'){ uiFlag={}; go(setFrom) }
+  else if(a==='calday'){ uiFlag.cd=uiFlag.cd===b.dataset.d?null:b.dataset.d; render() }
+  else if(a==='addbook'){ uiFlag.addbook=!uiFlag.addbook; render(); const i=app.querySelector('#setname'); if(i) i.focus() }
+  else if(a==='open-set'){ setFrom=(view==='books')?'books':(view==='home'||view==='me')?'home':setFrom; uiFlag={setId:b.dataset.id}; go('set') }
+  else if(a==='start-set'){ if(buildSession(false,b.dataset.id)) go('session') }
+  else if(a==='practice-set'){ if(buildSession(true,b.dataset.id)) go('session') }
+  else if(a==='flip'){ uiFlag={setId:b.dataset.id,fi:0,ff:false}; go('flip') }
+  else if(a==='flipcard'){ uiFlag.ff=!uiFlag.ff; render() }
+  else if(a==='fnext'){ uiFlag.fi=(uiFlag.fi||0)+1; uiFlag.ff=false; render() }
+  else if(a==='fprev'){ uiFlag.fi=Math.max(0,(uiFlag.fi||0)-1); uiFlag.ff=false; render() }
+  else if(a==='delword'){
+    const id=b.dataset.id;
+    if(uiFlag.delw===id){ const s=setOfItem(id); if(s) s.items=s.items.filter(x=>x.id!==id); delete P.cards[id]; saveP(); uiFlag.delw=null }
+    else uiFlag.delw=id;
+    const y=window.scrollY; render(); window.scrollTo(0,y);
+  }
+  else if(a==='addtab'){ uiFlag.addTab=b.dataset.v; uiFlag.err=''; uiFlag.msg=''; const y=window.scrollY; render(); window.scrollTo(0,y) }
+  else if(a==='delset'){ uiFlag.delset=true; render() }
+  else if(a==='delset-no'){ uiFlag.delset=false; render() }
+  else if(a==='delset-yes'){
+    const s=P.sets.find(x=>x.id===b.dataset.id);
+    if(s){ s.items.forEach(x=>{ delete P.cards[x.id] }); P.sets=P.sets.filter(x=>x!==s); saveP() }
+    uiFlag={}; go('books');
+  }
+  else if(a==='bulk'){
+    const s=P.sets.find(x=>x.id===b.dataset.id), rows=parseBulk(app.querySelector('#bulk').value);
+    let added=0, skipped=0;
+    rows.forEach(r=>{ if(!addItem(s,r.w,r.zh,'')) added++; else skipped++ });
+    saveP(); uiFlag.addTab='bulk'; uiFlag.err=''; uiFlag.msg=rows.length?`已加入 ${added} 個${skipped?`，${skipped} 個重複或不能加入`:''}。`:'沒有看到可以加入的字，請用「英文，中文」的格式，一行一個。';
+    render();
+  }
+  else if(a==='copyl'){
+    const lk=uiFlag.lk; if(!lk) return;
+    const u=linkUrls(lk), k=b.dataset.k, name=lk.who||lk.code;
+    const text=k==='s'?u.s:k==='p'?u.p:`【每日單字】\n${name} 的專屬單字連結：\n${u.s}\n\n家長可以用這個連結追蹤孩子的背誦進度：\n${u.p}`;
+    const ok=await copyText(text);
+    uiFlag.copied=ok?(k==='s'?'已複製學生連結。':k==='p'?'已複製家長連結。':'已複製訊息，可以直接貼到 LINE。'):'這個環境無法自動複製，請長按上面的連結選取後複製。';
+    const y=window.scrollY; render(); window.scrollTo(0,y);
+  }
+  else if(a==='toggle'){ uiFlag.open=uiFlag.open===b.dataset.id?null:b.dataset.id; const y=window.scrollY; render(); window.scrollTo(0,y) }
+  else if(a==='level'){ P.level=b.dataset.v; saveP(); render() }
+  else if(a==='rest-edit'){ uiFlag.sel=(P.rest.next?P.rest.next.days:P.rest.days).slice(); render() }
+  else if(a==='rd'){ const d=Number(b.dataset.d), s=uiFlag.sel; if(s.includes(d)) s.splice(s.indexOf(d),1); else{ s.push(d); if(s.length>2) s.shift() } render() }
+  else if(a==='rest-cancel'){ uiFlag.sel=null; render() }
+  else if(a==='rest-save'){
+    const s=uiFlag.sel.slice().sort(), same=s.join()===P.rest.days.slice().sort().join();
+    P.rest.next=same?null:{days:s,from:nextMonday(todayStr())}; saveP(); uiFlag.sel=null; render();
+  }
+  else if(a==='reset'){ uiFlag.reset=true; render() }
+  else if(a==='reset-no'){ uiFlag.reset=false; render() }
+  else if(a==='reset-yes'){ const nick=P.nick, lv=P.level, rd=P.rest.days, code=P.code; P=newProfile(nick,lv,rd); if(code) P.code=code; saveP(); uiFlag={}; render() }
+  else if(a==='intro-go'){ S.phase='ask'; render(); if(S.q.type==='listen') say(itemOf(S.queue[0].id).w) }
+  else if(a==='choose'){ const i=Number(b.dataset.i); answer(S.q.opts[i].ok,i); render(); say(itemOf(S.queue[0].id).w) }
+  else if(a==='skip'){ answer(false,''); render() }
+  else if(a==='next'){ nextEntry(); render() }
+  else if(a==='copy'){
+    const ta=app.querySelector('#rep'), toast=app.querySelector('#toast');
+    try{ await navigator.clipboard.writeText(ta.value); toast.textContent='已複製，可以貼到 LINE。' }
+    catch(err){ ta.focus(); ta.select(); toast.textContent='已選取文字，請長按後選「拷貝」。' }
+  }
+  else if(a==='import'){ const n=parseReports(app.querySelector('#paste').value); uiFlag.msg=n?`已匯入 ${n} 筆回報。`:'沒有找到可匯入的回報。'; render() }
+  else if(a==='clr'){ uiFlag.clr=true; render() }
+  else if(a==='clr-no'){ uiFlag.clr=false; render() }
+  else if(a==='clr-yes'){ T={reports:{},draft:T.draft}; save(TKEY,T); uiFlag.clr=false; render() }
+  else if(a==='tset-open'){ uiFlag={tset:b.dataset.id}; render() }
+  else if(a==='tset-back'){ uiFlag={}; render() }
+  else if(a==='tbulk'){
+    const rows=parseBulk(app.querySelector('#tbulk').value); let added=0, skipped=0;
+    rows.forEach(r=>{ if(!addOff(uiFlag.tset,{w:r.w,zh:r.zh})) added++; else skipped++ });
+    uiFlag.addTab='bulk'; uiFlag.err=''; uiFlag.msg=rows.length?`已加入 ${added} 個${skipped?`，${skipped} 個重複或不能加入`:''}。`:'沒有看到可以加入的字，請用「英文，中文」的格式，一行一個。';
+    render();
+  }
+  else if(a==='tdelword'){
+    const id=b.dataset.id;
+    if(uiFlag.delw===id){ mut(()=>{ const s=OFF.sets.find(x=>x.id===uiFlag.tset); s.items=s.items.filter(x=>x.id!==id) }); uiFlag.delw=null }
+    else uiFlag.delw=id;
+    const y=window.scrollY; render(); window.scrollTo(0,y);
+  }
+  else if(a==='thide'){ mut(()=>{ const s=OFF.sets.find(x=>x.id===uiFlag.tset); s.hidden=!s.hidden }); render() }
+  else if(a==='tdelset'){ uiFlag.delset=true; render() }
+  else if(a==='tdelset-no'){ uiFlag.delset=false; render() }
+  else if(a==='tdelset-yes'){
+    const sid=uiFlag.tset;
+    mut(()=>{ OFF.sets=OFF.sets.filter(x=>x.id!==sid); Object.keys(OFF.hw).forEach(k=>{ OFF.hw[k]=OFF.hw[k].filter(h=>h.set!==sid); if(!OFF.hw[k].length) delete OFF.hw[k] }) });
+    uiFlag={}; render();
+  }
+  else if(a==='hwdel'){
+    const k=b.dataset.code, id=b.dataset.id;
+    mut(()=>{ OFF.hw[k]=(OFF.hw[k]||[]).filter(h=>h.id!==id); if(!OFF.hw[k].length) delete OFF.hw[k] }); render();
+  }
+  else if(a==='discard'){ delete T.draft; delete T.draftBase; save(TKEY,T); OFF=EMBED; idx(); uiFlag.pub='已捨棄未發布的修改。'; render() }
+  else if(a==='exportoff'){ uiFlag.exp=!uiFlag.exp; render() }
+  else if(a==='csave'){
+    const sec=secretVal(); if(!sec){ uiFlag.pub='請先輸入老師密碼。'; render(); return }
+    uiFlag.pub='儲存中…'; render();
+    try{
+      const fresh=normData(await jget('action=data'));
+      if(T.draftBase&&fresh&&JSON.stringify(fresh)!==T.draftBase){ uiFlag.pub='試算表在你開始編輯之後被改過了。請按「捨棄修改」重新載入後再改，避免蓋掉試算表裡的內容。'; render(); return }
+      const r=await jpost({action:'saveData',secret:sec,data:OFF});
+      if(r.ok){ EMBED=JSON.parse(JSON.stringify(OFF)); save(DKEY,EMBED); OFF=EMBED; delete T.draft; delete T.draftBase; save(TKEY,T); idx(); uiFlag.pub='已儲存到試算表。' }
+      else uiFlag.pub='儲存失敗：'+(r.error||'未知原因');
+    }catch(err){ uiFlag.pub='連不上雲端，修改還留在這個瀏覽器，稍後再按儲存。' }
+    render();
+  }
+  else if(a==='creload'){
+    delete T.draft; delete T.draftBase; save(TKEY,T); OFF=EMBED; idx();
+    try{ await cloudLoadData(); uiFlag.pub='已載入最新的雲端資料。' }catch(err){ uiFlag.pub='連不上雲端。' } render();
+  }
+  else if(a==='greports'){ secretVal(); uiFlag.msg='更新中…'; render(); uiFlag.msg=await fetchReports(); render() }
+  else if(a==='publish'){
+    let art=null;
+    try{ art=(window.claude&&window.claude.use)?await window.claude.use('artifact'):null }catch(err){}
+    if(!art){ uiFlag.pub='這裡無法直接發布（要用擁有者帳號，在 claude.ai 裡開啟這個頁面）。請按「匯出資料」，把內容貼給 Claude。'; render(); return }
+    uiFlag.pub='發布中…'; render();
+    try{ await art.publish(buildDoc()) }
+    catch(err){ uiFlag.pub='發布失敗：'+((err&&(err.message||err.code))||'未知原因')+'。可以改按「匯出資料」。'; render() }
+  }
+});
+app.addEventListener('submit',e=>{
+  const f=e.target.closest('[data-form]'); if(!f) return;
+  e.preventDefault();
+  if(f.dataset.form==='setup'){
+    const nick=f.nick.value.trim(); if(!nick) return;
+    const rd=[...f.querySelectorAll('input[name=rd]:checked')].map(i=>Number(i.value));
+    if(rd.length!==2){ f.querySelector('#rderr').textContent='請剛好選 2 天當休息日。'; return }
+    const li=linkInfo();
+    P=newProfile(nick,li?li.level:f.lv.value,rd); if(li) P.code=li.code; saveP(); view='home'; render();
+  }else if(f.dataset.form==='typed'){
+    const given=f.ans.value.replace(/\s+/g,' ').trim(), ok=given.toLowerCase()===S.q.answer;
+    answer(ok,given); render(); say(itemOf(S.queue[0].id).w);
+  }else if(f.dataset.form==='newset'){
+    const name=f.setname.value.trim(); if(!name) return;
+    const s={id:'s'+(++P.seq),name,items:[]}; P.sets.push(s); saveP(); setFrom='books'; uiFlag={setId:s.id}; go('set');
+    const w=app.querySelector('#nw'); if(w) w.focus();
+  }else if(f.dataset.form==='addword'){
+    const s=P.sets.find(x=>x.id===uiFlag.setId), err=addItem(s,f.nw.value,f.nz.value,f.ne.value);
+    uiFlag.err=err||''; uiFlag.msg=err?'':`已加入 ${f.nw.value.trim()}。`; if(!err) saveP();
+    const y=window.scrollY; render(); window.scrollTo(0,y);
+    const w=app.querySelector(err?'#nz':'#nw'); if(w&&!err) w.focus();
+    if(err) ['nw','nz','ne'].forEach(k=>{ const x=app.querySelector('#'+k); if(x) x.value=f[k].value });
+  }else if(f.dataset.form==='rename'){
+    const s=P.sets.find(x=>x.id===uiFlag.setId), n=f.rn.value.trim(); if(s&&n){ s.name=n; saveP() }
+    render();
+  }else if(f.dataset.form==='tnewset'){
+    const name=f.tsname.value.trim(); if(!name) return;
+    let sid; mut(()=>{ sid='o'+(++OFF.seq); OFF.sets.push({id:sid,name,items:[]}) });
+    uiFlag={tset:sid}; render();
+  }else if(f.dataset.form==='taddword'){
+    const o={w:f.tw.value.replace(/\s+/g,' ').trim(),zh:f.tz.value.trim(),pos:f.tp.value.trim(),kk:f.tk.value.trim(),ex:f.te.value.trim(),exzh:f.tx.value.trim(),colloc:f.tc.value.trim()};
+    const vals=['tw','tz','tp','tk','te','tx','tc'].map(k=>f[k].value);
+    const err=addOff(uiFlag.tset,o);
+    uiFlag.err=err||''; uiFlag.msg=err?'':`已加入 ${o.w}。`;
+    const y=window.scrollY; render(); window.scrollTo(0,y);
+    if(err) ['tw','tz','tp','tk','te','tx','tc'].forEach((k,i)=>{ const x=app.querySelector('#'+k); if(x) x.value=vals[i] }); else{ const w=app.querySelector('#tw'); if(w) w.focus() }
+  }else if(f.dataset.form==='trename'){
+    const n=f.trn.value.trim(); if(n) mut(()=>{ OFF.sets.find(x=>x.id===uiFlag.tset).name=n });
+    render();
+  }else if(f.dataset.form==='hwadd'){
+    const code=f.hwcode.value.trim().toLowerCase(), sid=f.hwset.value;
+    if(code!=='*'&&!/^[a-z0-9]{1,16}$/.test(code)){ uiFlag.hwerr='學生代碼只能用英文小寫字母和數字，或輸入 * 代表全部學生。'; render(); return }
+    if(!sid){ uiFlag.hwerr='請先建立單字本。'; render(); return }
+    uiFlag.hwerr='';
+    mut(()=>{ const l=OFF.hw[code]||(OFF.hw[code]=[]); if(!l.some(h=>h.set===sid)) l.push({id:'h'+(++OFF.seq),set:sid}) });
+    render();
+  }else if(f.dataset.form==='mklink'){
+    const code=f.lkcode.value.trim().toLowerCase();
+    if(!/^[a-z0-9]{1,16}$/.test(code)){ uiFlag.link=''; uiFlag.lk=null; uiFlag.linkerr='代碼只能用英文小寫字母和數字，最多 16 個字。' }
+    else{
+      const lv=f.lklv.value, who=f.lkwho.value.trim(), prev=(T.codes||{})[code];
+      uiFlag.linkerr=''; uiFlag.link='#'+lv+'-'+code; uiFlag.warn=''; uiFlag.copied=''; uiFlag.lk={code,lv,who};
+      if(prev&&who&&prev.who&&who!==prev.who) uiFlag.warn=`代碼「${code}」之前已經給了「${prev.who}」，你這次填的是「${who}」。不同人請換一個代碼（在後面加上不同的編號）。`;
+      else if(prev) uiFlag.warn=`代碼「${code}」之前已經產生過${prev.who?`（${prev.who}）`:''}。如果是同一位學生重傳連結可以直接用；不同人請換一個代碼（在後面加上不同的編號）。`;
+      const conflict=!!(prev&&who&&prev.who&&who!==prev.who);
+      T.codes=T.codes||{}; if(!prev) T.codes[code]={lv,who,at:todayStr()}; save(TKEY,T);
+      uiFlag.nameMsg='';
+      if(cloud){
+        secretVal();
+        if(!who) uiFlag.nameMsg='沒有填學生全名，家長頁只會顯示「孩子的單字進度」。';
+        else if(conflict) uiFlag.nameMsg='名字沒有更新，因為這個代碼已經給了別人。';
+        else if(!T.secret) uiFlag.nameMsg='要先在上方輸入老師密碼並儲存，家長頁才會顯示學生的名字。';
+        else jpost({action:'setStudent',secret:T.secret,code,name:who,level:lv}).then(r=>{ uiFlag.nameMsg=r.ok?'已記下學生名字，家長頁會顯示「'+who+'」。':'名字沒有存成功：'+(r.error||''); if(uiFlag.link==='#'+lv+'-'+code) render() }).catch(()=>{ uiFlag.nameMsg='連不上雲端，名字沒有存成功。' });
+      }
+      if(cloud&&T.secret) jpost({action:'codes',secret:T.secret}).then(r=>{
+        const u=(r.codes||[]).find(x=>x.c===code); if(!u||uiFlag.link!=='#'+lv+'-'+code) return;
+        uiFlag.warn=(uiFlag.warn?uiFlag.warn+' ':'')+`雲端上已經有人在用「${code}」（暱稱 ${u.n||'—'}${u.d?'，最後使用 '+mmdd(u.d):''}）。不同人請換一個代碼。`; render();
+      }).catch(()=>{});
+    }
+    render();
+  }
+});
+/* 記住「單字本設定」是展開還是收合，重畫畫面時不要被摺起來 */
+app.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.hasAttribute&&d.hasAttribute('data-cfg')) uiFlag.cfg=d.open },true);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&S&&view==='session'&&S.phase==='intro'&&document.activeElement===document.body){ e.preventDefault(); S.phase='ask'; render() }
+});
+function newProfile(nick,level,rest){ return {nick,level,cards:{},log:{},streak:{count:0,last:null},rest:{days:rest||[0,6],next:null},sets:[],ulog:{},seq:0} }
+window.addEventListener('hashchange',()=>{ loadOff(); loadProfile(); S=null; view='home'; uiFlag={}; boot() });
+loadOff();
+boot();
+})();
+</script>
