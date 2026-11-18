@@ -1203,7 +1203,7 @@ function viewTeacher(){
       ${uiFlag.nameMsg?`<p class="note" aria-live="polite">${esc(uiFlag.nameMsg)}</p>`:''}</div>`})():''}
     ${uiFlag.linkerr?`<p class="note" style="color:var(--bad)">${esc(uiFlag.linkerr)}</p>`:''}
     ${uiFlag.warn?`<p class="banner no" role="alert">${esc(uiFlag.warn)}</p>`:''}
-    ${Object.keys(T.codes||{}).length?`<details><summary><b>已產生過的代碼</b> <span class="note">${Object.keys(T.codes).length} 個</span></summary><div class="stack" style="gap:4px;margin-top:6px">${Object.entries(T.codes).sort((a,b)=>a[0].localeCompare(b[0])).map(([c,v])=>`<div class="row" style="gap:8px;align-items:center"><span style="flex:1 1 auto">${esc(c)}${v.who?`（${esc(v.who)}）`:''}・${v.lv==='kid'?'國小':'國中高中'}</span>${uiFlag.delc===c?`<span class="note">刪除這個代碼？</span><button class="btn small" data-a="delc-yes" data-c="${esc(c)}">確定</button><button class="btn ghost small" data-a="delc-no">取消</button>`:`<button class="btn ghost small" data-a="delc" data-c="${esc(c)}" aria-label="刪除代碼 ${esc(c)}">刪除</button>`}</div>`).join('')}</div>${uiFlag.delmsg?`<p class="note" aria-live="polite">${esc(uiFlag.delmsg)}</p>`:''}</details>`:''}
+    ${Object.keys(T.codes||{}).length?`<details data-codes ${uiFlag.codesOpen?'open':''}><summary><b>已產生過的代碼</b> <span class="note">${Object.keys(T.codes).length} 個</span></summary><div class="stack" style="gap:4px;margin-top:6px">${Object.entries(T.codes).sort((a,b)=>a[0].localeCompare(b[0])).map(([c,v])=>`<div class="row" style="gap:8px;align-items:center"><span style="flex:1 1 auto">${esc(c)}${v.who?`（${esc(v.who)}）`:''}・${v.lv==='kid'?'國小':'國中高中'}</span>${uiFlag.delc===c?`<span class="note">刪除這個代碼？</span><button class="btn small" data-a="delc-yes" data-c="${esc(c)}">確定</button><button class="btn ghost small" data-a="delc-no">取消</button>`:`<button class="btn ghost small" data-a="delc" data-c="${esc(c)}" aria-label="刪除代碼 ${esc(c)}">刪除</button>`}</div>`).join('')}</div>${uiFlag.delmsg?`<p class="note" aria-live="polite">${esc(uiFlag.delmsg)}</p>`:''}</details>`:''}
     <p class="note">這個連結只用來區分是誰，不是密碼。進度存在學生自己的手機或電腦裡，換裝置會從頭開始，老師看到的進度來自學生的回報。</p></div></div>
   </div></div>`;
 }
@@ -1460,7 +1460,7 @@ app.addEventListener('submit',e=>{
   }
 });
 /* 記住「單字本設定」是展開還是收合，重畫畫面時不要被摺起來 */
-app.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.hasAttribute&&d.hasAttribute('data-cfg')) uiFlag.cfg=d.open },true);
+app.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.hasAttribute&&d.hasAttribute('data-cfg')) uiFlag.cfg=d.open; else if(d&&d.hasAttribute&&d.hasAttribute('data-codes')) uiFlag.codesOpen=d.open },true);
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&S&&view==='session'&&S.phase==='intro'&&document.activeElement===document.body){ e.preventDefault(); S.phase='ask'; render() }
 });
