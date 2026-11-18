@@ -300,7 +300,9 @@ applyTheme();
 
 /* ---------- 日期 ---------- */
 function pad(n){ return String(n).padStart(2,'0') }
-function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()) }
+/* 一天從凌晨 1 點開始算：0:00～0:59 還算前一天（晚睡的學生不會被切成兩天）。想改時間就改這個數字 */
+const DAY_START_HOUR=1;
+function todayStr(){ const d=new Date(Date.now()-DAY_START_HOUR*3600000); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()) }
 function dnum(s){ const a=s.split('-').map(Number); return Math.round(Date.UTC(a[0],a[1]-1,a[2])/86400000) }
 function addDays(s,n){ const d=new Date((dnum(s)+n)*86400000); return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate()) }
 function mmdd(s){ const a=s.split('-'); return Number(a[1])+'/'+Number(a[2]) }
