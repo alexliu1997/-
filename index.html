@@ -128,6 +128,7 @@ td.num{ font-variant-numeric:tabular-nums }
 .themeseg button{ font:inherit; font-size:.85rem; font-weight:600; min-height:36px; min-width:52px; padding:0 .8em; border:0; border-radius:999px; background:transparent; color:var(--muted); cursor:pointer }
 .themeseg button[aria-pressed=true]{ background:var(--surface); color:var(--accent-text); box-shadow:0 1px 4px rgba(0,0,0,.18) }
 .toprow{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap }
+.note.warn{ color:var(--accent-text); font-weight:600 }
 .dailybox{ border-top:1px solid var(--line); margin-top:14px; padding-top:14px }
 .stepper{ display:inline-flex; align-items:center; gap:6px; flex:none }
 .stepper b{ min-width:2.2em; text-align:center; font-size:1.4rem; font-variant-numeric:tabular-nums }
@@ -619,6 +620,8 @@ function finish(){
     const lg=logOf(todayStr()), pl=planToday();
     if(!lg.done&&!pl.rev.length&&!pl.nw.length){ lg.done=true; markDone(todayStr()) }
     saveP();
+  }else if(!S.practice&&S.scope){
+    const t=todayStr(), lg=logOf(t); lg.sd=true; markDone(t); saveP();   // 自選單字本練完一輪也算打卡（功課另外提醒）
   }
   pushReport(); flushAnswers();
   view='done';
@@ -715,7 +718,7 @@ function viewHome(){
   }else if(free){
     const ul=ulogOf(fs.id,t);
     if(remain){
-      status='<p class="note" style="text-align:center">自己選的單字本，不影響連續打卡天數。</p>';
+      status='<p class="note" style="text-align:center">自己選的單字本，練完一輪就算今天打卡。</p>';
       action=`<button class="btn go" data-a="start-set" data-id="${fs.id}">${ul.nw+ul.rv?'繼續學習':'開始學習'}</button>`;
     }else{
       status='<p class="status">這本今天練完了 🎉'+(tomorrow?`　明天有 ${tomorrow} 個字要複習`:'')+'</p>';
@@ -731,6 +734,8 @@ function viewHome(){
     status=pl.backlog?`<p class="note" style="text-align:center">還有 ${pl.backlog} 個字待複習，會分到接下來幾天，不用一次補完。</p>`:'';
     action=`<button class="btn go" data-a="start">${lg.nw+lg.rv?'繼續學習':'開始學習'}</button>`;
   }
+  const sdToday=!!(P.log[t]&&P.log[t].sd);
+  if(!free&&H.length&&!done&&sdToday) status=`<p class="note warn" style="text-align:center">今天自選單字已打卡 ✓，但老師指派的功課還沒完成喔。</p>`+status;
   const q=quota();
   const daily=`<div class="dailybox"><div class="row between"><span><b>每天新字</b><br><span class="note">複習最多 ${q.revCap} 個，會自動跟著調整</span></span>
     <span class="stepper"><button type="button" data-a="daily" data-d="-1" aria-label="每天少背一個" ${q.newPer<=1?'disabled':''}>−</button><b aria-live="polite">${q.newPer}</b><button type="button" data-a="daily" data-d="1" aria-label="每天多背一個" ${q.newPer>=30?'disabled':''}>＋</button></span></div></div>`;
@@ -806,7 +811,7 @@ function viewCal(){
   const n=clamp((ty-fy)*12+(tm-fm),0,11);
   const stateOf=ds=>{ const lg=P.log[ds];
     if(ds>t) return 'fut';
-    if(lg&&lg.done) return 'done';
+    if(lg&&(lg.done||lg.sd)) return 'done';
     if(lg&&(lg.nw+lg.rv)>0) return 'part';
     return ''; };
   const months=[];
@@ -823,7 +828,7 @@ function viewCal(){
   let detail='';
   if(uiFlag.cd){
     const d=uiFlag.cd, lg=P.log[d], st=stateOf(d);
-    const label=st==='fut'?'還沒到':st==='done'?'完成':st==='part'?'練習了一部分':isRest(d)?'休息日':'沒有背';
+    const label=st==='fut'?'還沒到':st==='done'?((lg&&lg.done)?'完成':'自選單字打卡'):st==='part'?'練習了一部分':isRest(d)?'休息日':'沒有背';
     detail=`<div class="card stack caldetail">
       <div class="row between"><b>${mmdd(d)}　週${WD[wdayOf(d)]}</b><span class="row"><span class="tag ${st==='done'?'known':st==='part'?'learning':''}">${label}</span><button class="iconbtn" data-a="calday" data-d="${d}" aria-label="關閉">✕</button></span></div>
       ${lg&&lg.tot?`<p class="note">新字 ${lg.nw}・複習 ${lg.rv}・答對 ${lg.ok}/${lg.tot}</p>`:st==='fut'?'':'<p class="note">這天沒有背誦紀錄。</p>'}</div>`;
