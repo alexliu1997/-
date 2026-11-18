@@ -121,6 +121,8 @@ select{ font:inherit; min-height:38px; padding:.3em .6em; border-radius:var(--ra
 details > summary{ cursor:pointer; min-height:24px }
 textarea{ font:.9rem/1.5 var(--ui); width:100%; min-height:110px; padding:.6em .8em; border-radius:var(--radius); border:var(--bw) solid var(--line); background:var(--bg); color:var(--fg) }
 .scroll{ overflow-x:auto } .scroll > table{ min-width:700px }
+.offscroll{ max-height:min(300px,45vh); overflow-y:auto; overscroll-behavior:contain; border:1px solid var(--line); border-radius:12px; padding:0 12px }
+.offscroll > .row:last-child{ border-bottom:0 !important }
 table{ border-collapse:collapse; width:100%; font-size:.92rem } th,td{ text-align:left; padding:.5em .7em; border-bottom:1px solid var(--line); vertical-align:top } th{ font-size:.8rem; color:var(--muted); white-space:nowrap }
 td.num{ font-variant-numeric:tabular-nums }
 .flag{ background:var(--warn-soft); color:var(--warn); font-weight:700; font-size:.75rem; padding:.1em .5em; border-radius:99px; white-space:nowrap }
@@ -1099,10 +1101,10 @@ function pubCard(){
 }
 function officialAdmin(){
   const rows=OFF.sets.map(s=>`<div class="row between" style="border-bottom:1px solid var(--line);padding:.4em 0"><span><b>${esc(s.name)}</b> <span class="note">${s.items.length} 個字・${s.hidden?'不公開（只用來出功課）':'學生看得到'}</span></span><button class="btn ghost small" data-a="tset-open" data-id="${s.id}">編輯</button></div>`).join('');
-  return `<div class="card stack"><h2>官方單字本</h2>
+  return `<details class="card" data-offs ${uiFlag.offOpen===false?'':'open'}><summary><b style="font-size:1.1rem">官方單字本</b> <span class="note">${OFF.sets.length} 本</span></summary><div class="stack" style="margin-top:10px">
     <p class="note">這裡建立的單字本，全部學生都會在「選單字本」頁的書桌看到，可以自己挑來背。也可以設成「不公開」，只拿來出功課。</p>
-    ${rows||'<p class="lead">還沒有單字本。</p>'}
-    <form class="row" data-form="tnewset"><input type="text" id="tsname" name="tsname" maxlength="30" placeholder="新單字本名稱，例如：國中必備字 1" style="flex:1 1 220px" aria-label="新單字本名稱"><button class="btn small" type="submit">新增</button></form></div>`;
+    ${rows?`<div class="offscroll" tabindex="0" role="region" aria-label="單字本清單，可捲動">${rows}</div>`:'<p class="lead">還沒有單字本。</p>'}
+    <form class="row" data-form="tnewset"><input type="text" id="tsname" name="tsname" maxlength="30" placeholder="新單字本名稱，例如：國中必備字 1" style="flex:1 1 220px" aria-label="新單字本名稱"><button class="btn small" type="submit">新增</button></form></div></details>`;
 }
 function hwAdmin(rows){
   const codes=[...new Set(rows.map(r=>r.c).filter(Boolean).concat(Object.keys(OFF.hw).filter(k=>k!=='*')))];
@@ -1460,7 +1462,7 @@ app.addEventListener('submit',e=>{
   }
 });
 /* 記住「單字本設定」是展開還是收合，重畫畫面時不要被摺起來 */
-app.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.hasAttribute&&d.hasAttribute('data-cfg')) uiFlag.cfg=d.open; else if(d&&d.hasAttribute&&d.hasAttribute('data-codes')) uiFlag.codesOpen=d.open },true);
+app.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.hasAttribute&&d.hasAttribute('data-cfg')) uiFlag.cfg=d.open; else if(d&&d.hasAttribute&&d.hasAttribute('data-codes')) uiFlag.codesOpen=d.open; else if(d&&d.hasAttribute&&d.hasAttribute('data-offs')) uiFlag.offOpen=d.open },true);
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&S&&view==='session'&&S.phase==='intro'&&document.activeElement===document.body){ e.preventDefault(); S.phase='ask'; render() }
 });
