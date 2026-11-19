@@ -130,6 +130,23 @@ td.num{ font-variant-numeric:tabular-nums }
 .themeseg button{ font:inherit; font-size:.85rem; font-weight:600; min-height:36px; min-width:52px; padding:0 .8em; border:0; border-radius:999px; background:transparent; color:var(--muted); cursor:pointer }
 .themeseg button[aria-pressed=true]{ background:var(--surface); color:var(--accent-text); box-shadow:0 1px 4px rgba(0,0,0,.18) }
 .toprow{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap }
+.ymon{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px }
+.ymon .ml{ font-weight:700; margin-bottom:4px }
+.hmg{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px }
+.hmg .wh{ font-size:.68rem; color:var(--muted); text-align:center }
+.hmc{ aspect-ratio:1; min-height:26px; border-radius:6px; border:2px solid transparent; background:var(--line); color:var(--fg); font:inherit; font-size:.7rem; padding:0; cursor:pointer }
+.hmc.has{ color:var(--accent-ink) }
+.hmc.dn{ border-color:var(--accent-text) }
+.hmc.sel{ outline:2px solid var(--fg); outline-offset:1px }
+.hmc.tdy{ text-decoration:underline }
+.hmc.empty{ background:transparent; cursor:default }
+.chips{ display:flex; flex-wrap:wrap; gap:8px }
+.chips button{ font:inherit; font-size:.9rem; font-weight:600; min-height:40px; padding:0 14px; border-radius:999px; border:var(--bw) solid var(--line2); background:var(--surface); color:var(--fg); cursor:pointer }
+.chips button[aria-pressed=true]{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent) }
+.kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px }
+.kpis>div{ background:var(--line); border-radius:12px; padding:10px 12px }
+.kpis b{ display:block; font-size:1.4rem }
+.linkbtn{ font:inherit; font-weight:700; color:var(--accent-text); background:none; border:0; padding:0; text-align:left; cursor:pointer; text-decoration:underline }
 .note.warn{ color:var(--accent-text); font-weight:600 }
 .dailybox{ border-top:1px solid var(--line); margin-top:14px; padding-top:14px }
 .stepper{ display:inline-flex; align-items:center; gap:6px; flex:none }
@@ -1169,7 +1186,75 @@ function addOff(sid,o){
     ['pos','kk','colloc','ex','exzh'].forEach(k=>{ if(o[k]) it[k]=o[k] }); t.items.push(it) });
   return null;
 }
+/* ---------- 老師：學生詳情（全年逐日統計） ---------- */
+const HIST={};   // code -> {state:'loading'|'ok'|'err', ...}
+async function loadHist(code){
+  HIST[code]={state:'loading'};
+  try{ const r=await jpost({action:'history',secret:T.secret,code}); HIST[code]=r&&r.ok?Object.assign({state:'ok'},r):{state:'err',msg:(r&&r.error)||'取得失敗'} }
+  catch(e){ HIST[code]={state:'err',msg:'連不上雲端，請稍後再試。'} }
+}
+const QT_ZH={en2zh:'看英文選中文',zh2en:'看中文選英文',listen:'聽音選單字',spell:'拼寫',cloze:'例句填空'};
+function viewTDetail(){
+  const code=uiFlag.tdet, h=HIST[code]||{state:'loading'}, t=todayStr();
+  const latest={}; Object.values(T.reports).forEach(r=>{ const k=r.c||r.n; if(!latest[k]||r.d>latest[k].d) latest[k]=r });
+  const people=Object.values(latest).filter(r=>r.c).sort((a,b)=>(a.name||a.n).localeCompare(b.name||b.n,'zh-Hant'));
+  const chips=`<div class="chips" role="group" aria-label="選擇學生">${people.map(r=>`<button type="button" data-a="tdet" data-c="${esc(r.c)}" aria-pressed="${r.c===code}">${esc(r.name||r.n)}</button>`).join('')}</div>`;
+  const nm=(latest[code]&&(latest[code].name||latest[code].n))||code;
+  const head=`<div class="wrap wide"><div class="toprow"><button class="btn ghost small" data-a="tdet-back">返回老師頁</button>${themeSeg()}</div>
+    <h1 class="title">${esc(nm)} 的學習狀況</h1>${chips}`;
+  if(h.state==='loading') return head+'<p class="lead">載入中…</p></div>';
+  if(h.state==='err') return head+`<p class="lead">${esc(h.msg||'取得失敗')}</p><button class="btn small" data-a="tdet" data-c="${esc(code)}">再試一次</button></div>`;
+  const rows=h.rows||[], by={}; rows.forEach(r=>{ by[r.d]=r });
+  const years=[...new Set(rows.map(r=>+r.d.slice(0,4)).concat([+t.slice(0,4)]))].sort();
+  const yr=uiFlag.tyear&&years.includes(uiFlag.tyear)?uiFlag.tyear:+t.slice(0,4);
+  const inY=rows.filter(r=>+r.d.slice(0,4)===yr);
+  const sum=k=>inY.reduce((a,r)=>a+(r[k]||0),0), act=inY.filter(r=>(r.nw+r.rv+r.xn+r.xr)>0).length;
+  const lastR=rows[rows.length-1];
+  const lvl=r=>{ if(!r) return 0; const n=r.nw+r.rv+r.xn+r.xr; return n===0?0:n<=5?1:n<=15?2:n<=30?3:4 };
+  const PCT=[0,28,50,72,95];
+  const months=[]; 
+  for(let m=1;m<=12;m++){
+    const nd=new Date(Date.UTC(yr,m,0)).getUTCDate(), lead=new Date(Date.UTC(yr,m-1,1)).getUTCDay();
+    let cells=WD.map(x=>`<span class="wh">${x}</span>`).join('')+'<span class="hmc empty"></span>'.repeat(lead);
+    for(let d=1;d<=nd;d++){
+      const ds=yr+'-'+pad(m)+'-'+pad(d), r=by[ds], L=lvl(r);
+      cells+=`<button type="button" class="hmc ${L?'has':''} ${r&&r.dn?'dn':''} ${uiFlag.tday===ds?'sel':''} ${ds===t?'tdy':''}" data-a="tday" data-d="${ds}" style="${L?`background:color-mix(in srgb,var(--accent) ${PCT[L]}%,transparent)`:''}" aria-label="${m}月${d}日${r?'，有回報':'，沒有紀錄'}">${d}</button>`;
+    }
+    months.push(`<div><div class="ml">${m} 月</div><div class="hmg">${cells}</div></div>`);
+  }
+  let detail='';
+  if(uiFlag.tday){
+    const d=uiFlag.tday, r=by[d], ad=(h.ad||{})[d];
+    detail=`<div class="card stack"><div class="row between"><b>${mmdd(d)}　週${WD[wdayOf(d)]}</b><button class="btn ghost small" data-a="tday" data-d="${d}">關閉</button></div>`+(r?
+      `<p>功課：新字 ${r.nw}・複習 ${r.rv}・答對 ${r.ok}/${r.tot}　${r.dn?'✅ 完成':(r.hn===0?'沒有功課':'未完成')}</p>
+       <p>自選單字本（非作業）：新字 ${r.xn}・複習 ${r.xr}</p>
+       <p class="note">連續 ${r.st} 天　熟悉 ${r.kn}/${r.hn}${ad?`　當天共答 ${ad[0]} 題，答對 ${Math.round(ad[1]/ad[0]*100)}%，平均每題 ${Math.round(ad[2]/ad[0]*10)/10} 秒`:''}</p>`
+      :'<p class="note">這天沒有回報紀錄。</p>')+'</div>';
+  }
+  const qs=Object.entries(h.qs||{}).sort((a,b)=>b[1][0]-a[1][0]);
+  const wrong=(h.wrong||[]).map(([id,n])=>{ const it=BYID[id]; return `<b>${esc(it?it.w:id)}</b>${it?` <span class="note">${esc(it.zh||'')}</span>`:''} <span class="note">×${n}</span>` });
+  return head+`
+    <div class="card stack"><div class="row between"><h2>${yr} 年</h2><span class="row">
+      <button class="btn ghost small" data-a="tyear" data-d="-1" ${years.indexOf(yr)<=0?'disabled':''} aria-label="前一年">‹</button>
+      <button class="btn ghost small" data-a="tyear" data-d="1" ${years.indexOf(yr)>=years.length-1?'disabled':''} aria-label="後一年">›</button></span></div>
+      <div class="kpis">
+        <div><span class="note">有練習的天數</span><b>${act} 天</b></div>
+        <div><span class="note">功課新字／複習</span><b>${sum('nw')}／${sum('rv')}</b></div>
+        <div><span class="note">自選新字／複習</span><b>${sum('xn')}／${sum('xr')}</b></div>
+        <div><span class="note">功課答對率</span><b>${sum('tot')?Math.round(sum('ok')/sum('tot')*100)+'%':'—'}</b></div>
+        <div><span class="note">目前連續</span><b>${lastR?lastR.st:0} 天</b></div>
+        <div><span class="note">最近回報</span><b>${lastR?mmdd(lastR.d):'—'}</b></div></div>
+      <p class="note">顏色越深，當天背的字越多（新字＋複習，含自選）。有框線的日子代表功課完成。點日期看細節。</p>
+      <div class="ymon">${months.join('')}</div></div>
+    ${detail}
+    <div class="card stack"><h2>答題統計（全部紀錄）</h2>
+      ${h.nAns?`<p class="note">共 ${h.nAns} 題，平均每題 ${h.avgSec} 秒。答題紀錄從開始記錄的那天起算。</p>
+      <table><thead><tr><th>題型</th><th>題數</th><th>答對率</th></tr></thead><tbody>${qs.map(([q,v])=>`<tr><td>${esc(QT_ZH[q]||q)}</td><td class="num">${v[0]}</td><td class="num">${Math.round(v[1]/v[0]*100)}%</td></tr>`).join('')}</tbody></table>
+      ${wrong.length?`<div><h2>最常答錯</h2><p>${wrong.join('　')}</p></div>`:''}`:'<p class="note">還沒有答題紀錄。</p>'}
+    </div></div>`;
+}
 function viewTeacher(){
+  if(uiFlag.tdet) return viewTDetail();
   if(uiFlag.tset) return viewTSet();
   const t=todayStr(), latest={};
   Object.values(T.reports).forEach(r=>{ const k=r.c||r.n; if(!latest[k]||r.d>latest[k].d) latest[k]=r });
@@ -1184,7 +1269,7 @@ function viewTeacher(){
     <textarea id="paste" placeholder="貼上學生傳來的回報…" aria-label="貼上學生回報"></textarea>
     <div class="row">${cloud?'<button class="btn" data-a="greports">更新學生回報</button>':''}<button class="btn ${cloud?'ghost small':''}" data-a="import">${cloud?'手動貼上匯入':'匯入'}</button><span class="toast" id="toast" aria-live="polite">${uiFlag.msg||''}</span></div>
     ${rows.length?`<div class="scroll"><table><thead><tr><th>暱稱</th><th>回報日</th><th>新字</th><th>複習</th><th>答對</th><th>非作業</th><th>連續</th><th>熟悉</th><th>休息日</th><th>自建</th><th>狀態</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td>${esc(r.name||r.n)}${r.name&&r.name!==r.n?` <span class="note">暱稱 ${esc(r.n)}</span>`:''}${r.c?` <span class="note">${esc(r.c)}</span>`:''}</td><td>${r.d===t?'今天':esc(mmdd(r.d))}</td><td class="num">${r.nw}</td><td class="num">${r.rv}</td><td class="num">${r.ok}/${r.tot}</td><td class="num">${r.d===t?((r.xn||0)||(r.xr||0)?`新 ${r.xn||0}・複 ${r.xr||0}`:'0'):'—'}</td><td class="num">${r.st} 天</td><td class="num">${r.kn}/${r.hn!=null?r.hn:'—'}</td><td>${r.rd?esc(dayNames(r.rd)):'—'}</td><td class="num">${r.uc||0}</td><td>${r.d!==t?((r.rd||[]).includes(wdayOf(t))?'今天休息':'<span class="flag">今天未回報</span>'):(r.dn?'完成':((r.rd||[]).includes(wdayOf(t))?'今天休息':(r.hn===0?'沒有功課':'未完成')))}</td></tr>`).join('')}
+      ${rows.map(r=>`<tr><td>${(cloud&&r.c)?`<button class="linkbtn" data-a="tdet" data-c="${esc(r.c)}">${esc(r.name||r.n)}</button>`:esc(r.name||r.n)}${r.name&&r.name!==r.n?` <span class="note">暱稱 ${esc(r.n)}</span>`:''}${r.c?` <span class="note">${esc(r.c)}</span>`:''}</td><td>${r.d===t?'今天':esc(mmdd(r.d))}</td><td class="num">${r.nw}</td><td class="num">${r.rv}</td><td class="num">${r.ok}/${r.tot}</td><td class="num">${r.d===t?((r.xn||0)||(r.xr||0)?`新 ${r.xn||0}・複 ${r.xr||0}`:'0'):'—'}</td><td class="num">${r.st} 天</td><td class="num">${r.kn}/${r.hn!=null?r.hn:'—'}</td><td>${r.rd?esc(dayNames(r.rd)):'—'}</td><td class="num">${r.uc||0}</td><td>${r.d!==t?((r.rd||[]).includes(wdayOf(t))?'今天休息':'<span class="flag">今天未回報</span>'):(r.dn?'完成':((r.rd||[]).includes(wdayOf(t))?'今天休息':(r.hn===0?'沒有功課':'未完成')))}</td></tr>`).join('')}
     </tbody></table></div>`:'<p class="lead">還沒有回報。</p>'}
     ${weak.length?`<div><h2>最常答錯</h2><p>${weak.map(([id,n])=>`<b>${esc(BYID[id].w)}</b> <span class="note">${esc(BYID[id].pos||'')}・${n} 人</span>`).join('　')}</p></div>`:''}
     ${rows.some(r=>r.uc)?`<div><h2>學生自建的單字（最近新增）</h2><div class="stack" style="gap:6px;margin-top:6px">${rows.filter(r=>r.uc).map(r=>`<details><summary><b>${esc(r.n)}</b> <span class="note">${r.uc} 個・${r.us} 本</span></summary><p class="note" style="margin-top:6px">${(r.un||[]).map(x=>esc(x[0])+' '+esc(x[1])).join('、')}</p></details>`).join('')}</div></div>`:''}
@@ -1245,7 +1330,7 @@ function render(){
   const f=app.querySelector('#ans'); if(f) f.focus();
   const nb=app.querySelector('#nextbtn'); if(nb) nb.focus({preventScroll:false});
   /* 還停留在同一頁時(例如產生連結、切換公開、刪除)，保留捲動位置；換頁或練習換題才回到頁首 */
-  const key=v==='session'?null:v+'|'+(uiFlag.tset||'')+'|'+(uiFlag.setId||'');
+  const key=v==='session'?null:v+'|'+(uiFlag.tset||'')+'|'+(uiFlag.setId||'')+'|'+(uiFlag.tdet||'');
   if(key&&key===lastKey) window.scrollTo(0,y0); else window.scrollTo(0,0);
   lastKey=key;
 }
@@ -1379,6 +1464,10 @@ app.addEventListener('click',async e=>{
     delete T.draft; delete T.draftBase; save(TKEY,T); OFF=EMBED; idx();
     try{ await cloudLoadData(); uiFlag.pub='已載入最新的雲端資料。' }catch(err){ uiFlag.pub='連不上雲端。' } render();
   }
+  else if(a==='tdet'){ secretVal(); const c=b.dataset.c; uiFlag={tdet:c,tyear:uiFlag.tyear}; render(); await loadHist(c); if(uiFlag.tdet===c) render() }
+  else if(a==='tdet-back'){ uiFlag={}; render() }
+  else if(a==='tday'){ uiFlag.tday=uiFlag.tday===b.dataset.d?null:b.dataset.d; render() }
+  else if(a==='tyear'){ uiFlag.tyear=(uiFlag.tyear||+todayStr().slice(0,4))+Number(b.dataset.d); uiFlag.tday=null; render() }
   else if(a==='greports'){ secretVal(); uiFlag.msg='更新中…'; render(); uiFlag.msg=await fetchReports(); render() }
   else if(a==='publish'){
     let art=null;
