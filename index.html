@@ -605,15 +605,42 @@ function buildSession(practice,scope){
   setEntry();
   return S;
 }
-/* 打字練習：選用功能，從目前這本已學過的字抽 10 個，只出拼寫/填空。不影響排程、不算每日任務，但會記錄給老師看 */
-function buildTyping(scope){
-  const items=scope?(findSet(scope)||{items:[]}).items:hwItems();
-  const learned=items.filter(x=>P.cards[x.id]);
-  if(!learned.length) return null;
-  const q=shuffle(learned).slice(0,10).map(x=>({id:x.id,kind:'practice',first:true}));
-  S={queue:q,total:q.length,firstLeft:q.length,practice:true,typing:true,scope:null,ok:0,tot:0,phase:'ask',q:null,last:null};
+/* 打字練習：選用功能。範圍/數量/提示程度由學生在設定頁選。不影響排程、不算每日任務，但會記錄給老師看 */
+function tpool(sid){ return sid?(findSet(sid)||{items:[]}).items:hwItems() }
+function tcfg(){
+  const c=P.tcfg||{};
+  return {scope:['today','all','weak'].includes(c.scope)?c.scope:'all', n:[10,20,30,50,0].includes(c.n)?c.n:10, hint:['full','len','none'].includes(c.hint)?c.hint:(P.level==='kid'?'full':'len')};
+}
+function tselect(sid,cfg){
+  const t=todayStr(), learned=tpool(sid).filter(x=>P.cards[x.id]);
+  let list=cfg.scope==='today'?learned.filter(x=>P.cards[x.id].last===t):learned;
+  list=cfg.scope==='weak'?list.slice().sort((a,b)=>P.cards[a.id].S-P.cards[b.id].S):shuffle(list);
+  return cfg.n?list.slice(0,cfg.n):list.slice(0,200);
+}
+function buildTyping(sid){
+  const cfg=tcfg(), list=tselect(sid,cfg);
+  if(!list.length) return null;
+  const q=shuffle(list).map(x=>({id:x.id,kind:'practice',first:true}));
+  S={queue:q,total:q.length,firstLeft:q.length,practice:true,typing:true,hint:cfg.hint,scope:null,ok:0,tot:0,phase:'ask',q:null,last:null};
   setEntry();
   return S;
+}
+function viewTypeSetup(){
+  const sid=uiFlag.tsid||'', cfg=tcfg(), t=todayStr();
+  const learned=tpool(sid).filter(x=>P.cards[x.id]);
+  const nToday=learned.filter(x=>P.cards[x.id].last===t).length, will=tselect(sid,cfg).length;
+  const grp=(key,lab,opts)=>`<div class="stack" style="gap:8px"><b>${lab}</b><div class="chips" role="group" aria-label="${lab}">${opts.map(([v,l])=>`<button type="button" data-a="tcfg" data-k="${key}" data-v="${v}" aria-pressed="${String(cfg[key])===String(v)}">${l}</button>`).join('')}</div></div>`;
+  return `<div class="wrap"><div class="toprow"><button class="btn ghost small" data-a="home">返回首頁</button>${themeSeg()}</div>
+    <h1 class="title">打字練習</h1>
+    <p class="lead">自己打字拼單字，是選用的練習，不影響每天的進度和打卡。</p>
+    <div class="card stack">
+      ${grp('scope','要練哪些字',[['today',`今天學過的（${nToday}）`],['all',`這本已學過的全部（${learned.length}）`],['weak','最不熟的']])}
+      ${grp('n','數量',[[10,'10 個'],[20,'20 個'],[30,'30 個'],[50,'50 個'],[0,'全部']])}
+      ${grp('hint','提示程度',[['full','完整提示（首字母＋字數）'],['len','只給字數'],['none','不給提示']])}
+      <p class="note">提示越少，越要靠自己想起來，練習效果通常越好，但也越難。剛開始可以先用完整提示。</p>
+    </div>
+    ${will?`<button class="btn go" data-a="typing-go">開始（${will} 題）</button>`:`<p class="status">這個範圍沒有可以練的字。${cfg.scope==='today'?'今天還沒學過或複習過字，可以換成「這本已學過的全部」。':''}</p>`}
+  </div>`;
 }
 function setEntry(){
   const e=S.queue[0];
@@ -771,7 +798,7 @@ function viewHome(){
     action=`<button class="btn go" data-a="start">${lg.nw+lg.rv?'繼續學習':'開始學習'}</button>`;
   }
   const canType=items.some(x=>P.cards[x.id]);
-  const typeBtn=canType?`<button class="btn go ghost" data-a="typing" data-id="${free?fs.id:''}">✍️ 打字練習（選用）</button><p class="note" style="text-align:center">自己打字拼單字，抽 10 個已學過的字。不影響每日進度。</p>`:'';
+  const typeBtn=canType?`<button class="btn go ghost" data-a="typing-setup" data-id="${free?fs.id:''}">✍️ 打字練習（選用）</button><p class="note" style="text-align:center">自己打字拼單字，可選範圍和數量。不影響每日進度。</p>`:'';
   const sdToday=!!(P.log[t]&&P.log[t].sd);
   if(!free&&H.length&&!done&&sdToday) status=`<p class="note warn" style="text-align:center">今天自選單字已打卡 ✓，但老師指派的功課還沒完成喔。</p>`+status;
   const q=quota();
@@ -900,13 +927,14 @@ function viewSession(){
   }else if(q.type==='listen'){
     body=`<div class="card idx stack" style="align-items:center"><span class="note">聽一聽，選出你聽到的字</span>${spkBtn(it.w,'big')}</div>`+optsHTML(q,fb);
   }else if(q.type==='spell'){
-    const hint=it.w[0]+' '+Array(it.w.length-1).fill('_').join(' ');
-    body=`<div class="card idx stack"><div class="zh" style="font-size:1.5rem">${esc(it.zh)}</div><div class="row">${posTag(it)}<span class="note">拼出這個英文單字（${it.w.length} 個字母）</span></div>
+    const hl=(S&&S.typing)?S.hint:'full';
+    const hint=hl==='full'?it.w[0]+' '+Array(it.w.length-1).fill('_').join(' '):hl==='len'?Array(it.w.length).fill('_').join(' '):'＿＿＿＿＿＿＿＿';
+    body=`<div class="card idx stack"><div class="zh" style="font-size:1.5rem">${esc(it.zh)}</div><div class="row">${posTag(it)}<span class="note">拼出這個英文單字${hl==='none'?'':`（${it.w.length} 個字母）`}</span></div>
       <div class="kk" style="letter-spacing:.15em">${esc(hint)}</div>${spkBtn(it.w)}</div>`+typedHTML(fb);
   }else{
     const sent=esc(it.ex).replace(esc(clozeOf(it)),'<span class="blank"></span>');
     body=`<div class="card idx stack"><div class="ex"><span class="en" style="font-size:1.15rem">${sent}</span>${it.exzh?`<span class="cn">${esc(it.exzh)}</span>`:`<span class="cn">${esc(it.zh)}</span>`}</div>
-      <div class="row">${posTag(it)}<span class="note">填入適當的字（提示：${esc(it.w)}，注意字形）</span></div></div>`+typedHTML(fb);
+      <div class="row">${posTag(it)}<span class="note">${(S&&S.typing&&S.hint!=='full')?`填入適當的字${S.hint==='len'?`（${clozeOf(it).length} 個字母）`:''}`:`填入適當的字（提示：${esc(it.w)}，注意字形）`}</span></div></div>`+typedHTML(fb);
   }
   let result='';
   if(fb){
@@ -1330,7 +1358,7 @@ function render(){
   const v=route(); let html='';
   document.body.classList.toggle('deco',['home','me','books','cal','parent'].includes(v));
   document.body.classList.toggle('hastab',v==='home'||v==='me');
-  document.body.classList.toggle('hasnav',['home','me','books','cal','browse','report','set','flip'].includes(v));
+  document.body.classList.toggle('hasnav',['home','me','books','cal','browse','report','set','flip','typesetup'].includes(v));
   const y0=window.scrollY;
   if(booting&&v!=='teacher'){ app.innerHTML='<div class="wrap"><p class="lead">載入中…</p></div>'; lastKey=null; return }
   if(v==='parent') html=viewParent();
@@ -1341,12 +1369,13 @@ function render(){
   else if(v==='me') html=viewMe();
   else if(v==='books') html=viewBooks();
   else if(v==='cal') html=viewCal();
+  else if(v==='typesetup') html=viewTypeSetup();
   else if(v==='set') html=viewSet();
   else if(v==='flip') html=viewFlip();
   else if(v==='browse') html=viewBrowse();
   else if(v==='report') html=viewReport();
   else html=viewHome();
-  if(['books','cal','browse','report','set','flip'].includes(v)&&!html.includes('class="tabbar')) html+=tabbar(v==='report'?'me':'home',true);
+  if(['books','cal','browse','report','set','flip','typesetup'].includes(v)&&!html.includes('class="tabbar')) html+=tabbar(v==='report'?'me':'home',true);
   app.innerHTML=html;
   const f=app.querySelector('#ans'); if(f) f.focus();
   const nb=app.querySelector('#nextbtn'); if(nb) nb.focus({preventScroll:false});
@@ -1364,7 +1393,9 @@ app.addEventListener('click',async e=>{
   if(a==='speak') return say(b.dataset.w);
   if(a==='theme'){ save(THKEY,b.dataset.v); applyTheme(); render(); return }
   if(a==='start'){ if(buildSession(false)) go('session') }
-  else if(a==='typing'){ if(buildTyping(b.dataset.id||null)) go('session') }
+  else if(a==='typing-setup'){ uiFlag={tsid:b.dataset.id||''}; go('typesetup') }
+  else if(a==='tcfg'){ const c=tcfg(); c[b.dataset.k]=b.dataset.k==='n'?Number(b.dataset.v):b.dataset.v; P.tcfg=c; saveP(); render() }
+  else if(a==='typing-go'){ const sid=uiFlag.tsid||''; if(buildTyping(sid||null)) go('session') }
   else if(a==='practice'){ if(buildSession(true)) go('session') }
   else if(a==='home'){ uiFlag={}; go('home') }
   else if(a==='me'){ uiFlag={}; go('me') }
