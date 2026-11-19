@@ -609,7 +609,7 @@ function buildSession(practice,scope){
 function tpool(sid){ return sid?(findSet(sid)||{items:[]}).items:hwItems() }
 function tcfg(){
   const c=P.tcfg||{};
-  return {scope:['today','all','weak'].includes(c.scope)?c.scope:'all', n:[10,20,30,50,0].includes(c.n)?c.n:10, hint:['full','len','none'].includes(c.hint)?c.hint:(P.level==='kid'?'full':'len')};
+  return {scope:['today','all','weak'].includes(c.scope)?c.scope:'all', n:[10,20,30,50,0].includes(c.n)?c.n:10};
 }
 function tselect(sid,cfg){
   const t=todayStr(), learned=tpool(sid).filter(x=>P.cards[x.id]);
@@ -621,7 +621,7 @@ function buildTyping(sid){
   const cfg=tcfg(), list=tselect(sid,cfg);
   if(!list.length) return null;
   const q=shuffle(list).map(x=>({id:x.id,kind:'practice',first:true}));
-  S={queue:q,total:q.length,firstLeft:q.length,practice:true,typing:true,hint:cfg.hint,scope:null,ok:0,tot:0,phase:'ask',q:null,last:null};
+  S={queue:q,total:q.length,firstLeft:q.length,practice:true,typing:true,hl:0,scope:null,ok:0,tot:0,phase:'ask',q:null,last:null};
   setEntry();
   return S;
 }
@@ -636,8 +636,7 @@ function viewTypeSetup(){
     <div class="card stack">
       ${grp('scope','要練哪些字',[['today',`今天學過的（${nToday}）`],['all',`這本已學過的全部（${learned.length}）`],['weak','最不熟的']])}
       ${grp('n','數量',[[10,'10 個'],[20,'20 個'],[30,'30 個'],[50,'50 個'],[0,'全部']])}
-      ${grp('hint','提示程度',[['full','完整提示（首字母＋字數）'],['len','只給字數'],['none','不給提示']])}
-      <p class="note">提示越少，越要靠自己想起來，練習效果通常越好，但也越難。剛開始可以先用完整提示。</p>
+      <p class="note">每一題一開始都沒有提示，只有一條線。卡住的時候可以按「提示」，先出現字數和發音，再按一次出現字首。實在想不起來，按「我還是不會」會算答錯。</p>
     </div>
     ${will?`<button class="btn go" data-a="typing-go">開始（${will} 題）</button>`:`<p class="status">這個範圍沒有可以練的字。${cfg.scope==='today'?'今天還沒學過或複習過字，可以換成「這本已學過的全部」。':''}</p>`}
   </div>`;
@@ -646,7 +645,7 @@ function setEntry(){
   const e=S.queue[0];
   S.q=makeQ(e.id,e.kind==='practice'?'review':e.kind);
   S.phase=(e.kind==='new'&&e.first)?'intro':'ask';
-  S.last=null; S.t0=Date.now();
+  S.last=null; S.t0=Date.now(); S.hl=0;
   if(S.phase==='ask'&&S.q.type==='listen') setTimeout(()=>{ if(S&&S.phase==='ask'&&S.queue[0]===e) say(itemOf(e.id).w) },250);
 }
 function answer(correct,given){
@@ -658,7 +657,7 @@ function answer(correct,given){
       const lg=S.scope?ulogOf(S.scope,t):logOf(t), g=correct?3:1;
       const c0=P.cards[e.id], el=c0?Math.max(0,dnum(t)-dnum(c0.last)):-1;
       logAnswer([Date.now().toString(36)+Math.random().toString(36).slice(2,6), Date.now(), e.id, e.kind==='new'?'new':'rev', S.q.type, correct?1:0,
-        el, c0?Math.round(c0.S*100)/100:0, c0?Math.round(retr(el,c0.S)*1000)/1000:0, Math.min(120,Math.round((Date.now()-(S.t0||Date.now()))/1000)), S.scope?'self':'hw']);
+        el, c0?Math.round(c0.S*100)/100:0, c0?Math.round(retr(el,c0.S)*1000)/1000:0, Math.min(120,Math.round((Date.now()-(S.t0||Date.now()))/1000)), S.scope?'self':'hw',0]);
       if(e.kind==='new'){ learnNew(e.id,g,t); lg.nw++ } else { reviewCard(P.cards[e.id],g,t); lg.rv++ }
       lg.tot++; if(correct) lg.ok++;
       saveP();
@@ -666,7 +665,7 @@ function answer(correct,given){
       const lg=logOf(t); lg.tn=(lg.tn||0)+1; if(correct) lg.tk=(lg.tk||0)+1;
       const c0=P.cards[e.id], el=c0?Math.max(0,dnum(t)-dnum(c0.last)):-1;
       logAnswer([Date.now().toString(36)+Math.random().toString(36).slice(2,6), Date.now(), e.id, 'typ', S.q.type, correct?1:0,
-        el, c0?Math.round(c0.S*100)/100:0, c0?Math.round(retr(el,c0.S)*1000)/1000:0, Math.min(120,Math.round((Date.now()-(S.t0||Date.now()))/1000)), 'type']);
+        el, c0?Math.round(c0.S*100)/100:0, c0?Math.round(retr(el,c0.S)*1000)/1000:0, Math.min(120,Math.round((Date.now()-(S.t0||Date.now()))/1000)), 'type', S.hl||0]);
       saveP();
     }
   }
@@ -927,14 +926,15 @@ function viewSession(){
   }else if(q.type==='listen'){
     body=`<div class="card idx stack" style="align-items:center"><span class="note">聽一聽，選出你聽到的字</span>${spkBtn(it.w,'big')}</div>`+optsHTML(q,fb);
   }else if(q.type==='spell'){
-    const hl=(S&&S.typing)?S.hint:'full';
-    const hint=hl==='full'?it.w[0]+' '+Array(it.w.length-1).fill('_').join(' '):hl==='len'?Array(it.w.length).fill('_').join(' '):'＿＿＿＿＿＿＿＿';
-    body=`<div class="card idx stack"><div class="zh" style="font-size:1.5rem">${esc(it.zh)}</div><div class="row">${posTag(it)}<span class="note">拼出這個英文單字${hl==='none'?'':`（${it.w.length} 個字母）`}</span></div>
-      <div class="kk" style="letter-spacing:.15em">${esc(hint)}</div>${spkBtn(it.w)}</div>`+typedHTML(fb);
+    const ty=!!(S&&S.typing), hl=ty?(S.hl||0):2;
+    const hint=!ty?it.w[0]+' '+Array(it.w.length-1).fill('_').join(' '):hl===0?'＿＿＿＿＿＿＿＿':hl===1?Array(it.w.length).fill('_').join(' '):it.w[0]+' '+Array(it.w.length-1).fill('_').join(' ');
+    const audio=(!ty||hl>=1||fb)?spkBtn(it.w):'';
+    body=`<div class="card idx stack"><div class="zh" style="font-size:1.5rem">${esc(it.zh)}</div><div class="row">${posTag(it)}<span class="note">拼出這個英文單字${(ty&&hl===0)?'':`（${it.w.length} 個字母）`}</span></div>
+      <div class="kk" style="letter-spacing:.15em">${esc(hint)}</div>${audio}</div>`+typedHTML(fb);
   }else{
     const sent=esc(it.ex).replace(esc(clozeOf(it)),'<span class="blank"></span>');
     body=`<div class="card idx stack"><div class="ex"><span class="en" style="font-size:1.15rem">${sent}</span>${it.exzh?`<span class="cn">${esc(it.exzh)}</span>`:`<span class="cn">${esc(it.zh)}</span>`}</div>
-      <div class="row">${posTag(it)}<span class="note">${(S&&S.typing&&S.hint!=='full')?`填入適當的字${S.hint==='len'?`（${clozeOf(it).length} 個字母）`:''}`:`填入適當的字（提示：${esc(it.w)}，注意字形）`}</span></div></div>`+typedHTML(fb);
+      <div class="row">${posTag(it)}<span class="note">${(S&&S.typing)?'填入適當的字':`填入適當的字（提示：${esc(it.w)}，注意字形）`}</span></div>${(S&&S.typing&&!fb&&S.hl>=1)?`<div class="kk" style="letter-spacing:.15em">${esc(S.hl>=2?clozeOf(it)[0]+' '+Array(clozeOf(it).length-1).fill('_').join(' '):Array(clozeOf(it).length).fill('_').join(' '))}</div>${spkBtn(clozeOf(it))}`:''}</div>`+typedHTML(fb);
   }
   let result='';
   if(fb){
@@ -956,7 +956,8 @@ function typedHTML(fb){
   if(fb) return `<div class="card"><span class="note">你的答案：</span> <b>${esc(S.last.given||'（空白）')}</b></div>`;
   return `<form class="stack" data-form="typed"><label for="ans" class="note">你的答案</label>
     <input type="text" id="ans" name="ans" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
-    <div class="row"><button class="btn" style="flex:1" type="submit">送出</button><button class="btn ghost" type="button" data-a="skip">不知道</button></div></form>`;
+    <div class="row"><button class="btn" style="flex:1" type="submit">送出</button>${S.typing?'':'<button class="btn ghost" type="button" data-a="skip">不知道</button>'}</div>
+    ${S.typing?`<div class="row">${(S.hl||0)<2?`<button class="btn ghost" type="button" data-a="hint">${(S.hl||0)===0?'💡 提示':'💡 再提示'}</button>`:'<span class="note">已經沒有更多提示了</span>'}${(S.hl||0)>=1?'<button class="btn ghost" type="button" data-a="skip">我還是不會</button>':''}</div>`:''}</form>`;
 }
 
 function viewDone(){
@@ -1455,6 +1456,9 @@ app.addEventListener('click',async e=>{
   else if(a==='reset-yes'){ const nick=P.nick, lv=P.level, rd=P.rest.days, code=P.code; P=newProfile(nick,lv,rd); if(code) P.code=code; saveP(); uiFlag={}; render() }
   else if(a==='intro-go'){ S.phase='ask'; S.t0=Date.now(); render(); if(S.q.type==='listen') say(itemOf(S.queue[0].id).w) }
   else if(a==='choose'){ const i=Number(b.dataset.i); answer(S.q.opts[i].ok,i); render(); say(itemOf(S.queue[0].id).w) }
+  else if(a==='hint'){ const el=document.getElementById('ans'), v=el?el.value:''; S.hl=Math.min(2,(S.hl||0)+1); render();
+    const e2=document.getElementById('ans'); if(e2){ e2.value=v; e2.focus() }
+    if(S.hl===1){ const it=itemOf(S.queue[0].id); say(S.q.type==='cloze'?clozeOf(it):it.w) } }
   else if(a==='skip'){ answer(false,''); render() }
   else if(a==='next'){ nextEntry(); render() }
   else if(a==='copy'){
