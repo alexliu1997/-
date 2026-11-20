@@ -1038,7 +1038,7 @@ function viewFlip(){
   const i=clamp(uiFlag.fi||0,0,s.items.length-1), it=s.items[i], back=!!uiFlag.ff;
   return `<div class="wrap"><div class="row between"><button class="btn ghost small" data-a="open-set" data-id="${s.id}">返回</button><span class="note">${i+1}／${s.items.length}</span></div>
     <button class="card idx flipcard" data-a="flipcard" aria-label="點一下翻面">
-      ${back?`<span class="zh" style="font-size:1.8rem">${esc(it.zh)}</span>${it.ex?`<span class="ex"><span class="en">${esc(it.ex)}</span></span>`:''}`
+      ${back?`<span class="zh" style="font-size:1.8rem">${esc(it.zh)}</span>${it.ex?`<span class="ex"><span class="en">${esc(it.ex)}</span>${it.exzh?`<span class="cn">${esc(it.exzh)}</span>`:''}</span>`:''}`
             :`<span class="word">${esc(it.w)}</span>`}
       <span class="note">點一下翻面</span></button>
     <div class="row" style="justify-content:center">${spkBtn(it.w)}</div>
