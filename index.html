@@ -672,7 +672,7 @@ function answer(correct,given){
       saveP();
     }
   }
-  if(!correct&&(e.tries||0)<2) S.queue.push({id:e.id,kind:'again',first:false,tries:(e.tries||0)+1});
+  if(!correct&&(e.tries||0)<2) S.queue.push({id:e.id,kind:'again',src:e.kind==='again'?e.src:e.kind,first:false,tries:(e.tries||0)+1});
 }
 function nextEntry(){
   const e=S.queue.shift();
@@ -943,7 +943,11 @@ function viewSession(){
   if(fb){
     const msg=right?(P.level==='kid'?pick(['答對了！','太棒了！','很厲害！']):'正確'):(P.level==='kid'?'沒關係，再記一次':'不正確');
     const ans=(q.type==='spell'||q.type==='cloze')&&!right?`<p>正確答案：<b>${esc(q.type==='spell'?it.w:clozeOf(it))}</b></p>`:'';
-    result=`<div aria-live="polite" class="stack"><div class="banner ${right?'ok':'no'}">${msg}</div>${ans}${wordCard(it)}
+    /* 複習／加強練習：直接考試，不再顯示單字卡；答錯時只給一行正確答案。新字才顯示完整單字卡 */
+    const e0=S.queue[0], quiz=(e0.kind==='again'?e0.src:e0.kind);
+    const noCard=quiz==='review'||quiz==='practice';
+    const brief=noCard&&!right?`<p class="row" style="gap:8px">${(q.type==='spell'||q.type==='cloze')?'':'<span>正確答案：</span>'}<b>${esc(it.w)}</b> <span class="note">${esc(it.zh)}</span>${spkBtn(it.w)}</p>`:'';
+    result=`<div aria-live="polite" class="stack"><div class="banner ${right?'ok':'no'}">${msg}</div>${ans}${noCard?brief:wordCard(it)}
       ${!right&&S.queue[0].first?'<p class="note">這個字等一下會再出現一次。</p>':''}
       <button class="btn block" data-a="next" id="nextbtn">${S.queue.length>1?'下一題':'完成'}</button></div>`;
   }
