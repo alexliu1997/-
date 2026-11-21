@@ -429,9 +429,12 @@ function fixP(){
 function saveP(){ P.ts=Date.now(); save(PKEY,P); schedulePush() }
 /* ---------- 雲端 (Google 試算表) ---------- */
 let pushT=null, LASTO=null, booting=false;
-function netFetch(url,opt){ const c=new AbortController(), tm=setTimeout(()=>c.abort(),10000); return fetch(url,Object.assign({signal:c.signal},opt||{})).then(r=>r.json()).finally(()=>clearTimeout(tm)) }
-const jget=q=>netFetch(API_URL+'?'+q);
-const jpost=b=>netFetch(API_URL,{method:'POST',body:JSON.stringify(b)});
+function netFetch(url,opt,ms){ const c=new AbortController(), tm=setTimeout(()=>c.abort(),ms||10000); return fetch(url,Object.assign({signal:c.signal},opt||{})).then(r=>r.json()).finally(()=>clearTimeout(tm)) }
+const jget=(q,ms)=>netFetch(API_URL+'?'+q,null,ms);
+const jpost=(b,ms)=>netFetch(API_URL,{method:'POST',body:JSON.stringify(b)},ms);
+/* 單字資料有幾千筆，讀取和儲存都要比一般請求久，不能只等 10 秒 */
+const SLOW_LOAD=90000, SLOW_SAVE=240000;
+const netErr=e=>e&&e.name==='AbortError'?'雲端回應太久，超過等待時間（單字資料很多）。':(e instanceof SyntaxError?'雲端回傳的不是資料，可能是 Apps Script 出錯或部署網址／權限有問題。':'連不上雲端（網路或網址有問題）。');
 /* ---------- 答題紀錄：每題一筆，先存在本機，再批次傳到試算表 Answers 分頁（日後用來校準複習演算法） ---------- */
 const alogKey=()=>'vocab-alog-'+((P&&P.code)||'');
 let flushing=false;
@@ -457,7 +460,7 @@ async function pullProfile(){
   if(r&&r.json&&(!P||r.ts>(P.ts||0))){ P=JSON.parse(r.json); P.code=l.code; P.level=l.level; fixP(); save(PKEY,P) }
 }
 async function cloudLoadData(){
-  const d=normData(await jget('action=data')); if(!d) return;
+  const d=normData(await jget('action=data',SLOW_LOAD)); if(!d) return;
   if(JSON.stringify(d)!==JSON.stringify(EMBED)){ EMBED=d; save(DKEY,d) }
   if(T.draft&&JSON.stringify(T.draft)===JSON.stringify(EMBED)){ delete T.draft; delete T.draftBase; save(TKEY,T) }
   loadOff();
@@ -1509,17 +1512,17 @@ app.addEventListener('click',async e=>{
     const sec=secretVal(); if(!sec){ uiFlag.pub='請先輸入老師密碼。'; render(); return }
     uiFlag.pub='儲存中…'; render();
     try{
-      const fresh=normData(await jget('action=data'));
+      const fresh=normData(await jget('action=data',SLOW_LOAD));
       if(T.draftBase&&fresh&&JSON.stringify(fresh)!==T.draftBase){ uiFlag.pub='試算表在你開始編輯之後被改過了。請按「捨棄修改」重新載入後再改，避免蓋掉試算表裡的內容。'; render(); return }
-      const r=await jpost({action:'saveData',secret:sec,data:OFF});
+      const r=await jpost({action:'saveData',secret:sec,data:OFF},SLOW_SAVE);
       if(r.ok){ EMBED=JSON.parse(JSON.stringify(OFF)); save(DKEY,EMBED); OFF=EMBED; delete T.draft; delete T.draftBase; save(TKEY,T); idx(); uiFlag.pub='已儲存到試算表。' }
       else uiFlag.pub='儲存失敗：'+(r.error||'未知原因');
-    }catch(err){ uiFlag.pub='連不上雲端，修改還留在這個瀏覽器，稍後再按儲存。' }
+    }catch(err){ uiFlag.pub=netErr(err)+' 修改還留在這個瀏覽器；如果是回應太久，試算表可能已經存好了，請按「重新載入雲端資料」確認。' }
     render();
   }
   else if(a==='creload'){
     delete T.draft; delete T.draftBase; save(TKEY,T); OFF=EMBED; idx();
-    try{ await cloudLoadData(); uiFlag.pub='已載入最新的雲端資料。' }catch(err){ uiFlag.pub='連不上雲端。' } render();
+    try{ await cloudLoadData(); uiFlag.pub='已載入最新的雲端資料。' }catch(err){ uiFlag.pub=netErr(err) } render();
   }
   else if(a==='tdet'){ secretVal(); const c=b.dataset.c; uiFlag={tdet:c,tyear:uiFlag.tyear}; render(); await loadHist(c); if(uiFlag.tdet===c) render() }
   else if(a==='tdet-back'){ uiFlag={}; render() }
