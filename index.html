@@ -784,7 +784,7 @@ function viewHome(){
     const ul=ulogOf(fs.id,t);
     if(remain){
       status='<p class="note" style="text-align:center">自己選的單字本，練完一輪就算今天打卡。</p>';
-      action=`<button class="btn go" data-a="start-set" data-id="${fs.id}">${ul.nw+ul.rv?'繼續學習':'開始學習'}</button>`;
+      action=`<button class="btn go" data-a="start-set" data-id="${fs.id}">${ul.nw+ul.rv?'繼續複習':'開始複習'}</button>`;
     }else{
       status='<p class="status">這本今天練完了 🎉'+(tomorrow?`　明天有 ${tomorrow} 個字要複習`:'')+'</p>';
       action=learned?`<button class="btn go ghost" data-a="practice-set" data-id="${fs.id}">加強練習（不影響排程）</button>`:'';
@@ -797,7 +797,7 @@ function viewHome(){
     action=remain?`<button class="btn go ghost" data-a="start">還是想練習</button>`:'';
   }else{
     status=pl.backlog?`<p class="note" style="text-align:center">還有 ${pl.backlog} 個字待複習，會分到接下來幾天，不用一次補完。</p>`:'';
-    action=`<button class="btn go" data-a="start">${lg.nw+lg.rv?'繼續學習':'開始學習'}</button>`;
+    action=`<button class="btn go" data-a="start">${lg.nw+lg.rv?'繼續複習':'開始複習'}</button>`;
   }
   const canType=items.some(x=>P.cards[x.id]);
   const typeBtn=canType?`<button class="btn go ghost" data-a="typing-setup" data-id="${free?fs.id:''}">✍️ 打字練習（選用）</button><p class="note" style="text-align:center">自己打字拼單字，可選範圍和數量。不影響每日進度。</p>`:'';
@@ -812,7 +812,7 @@ function viewHome(){
     ${card}</div>
     <div class="col task"><div class="sectitle">今日任務</div>
     <div class="nums"><div><b>${pl.nw.length}</b><span>新字</span></div><div><b>${pl.rev.length}</b><span>複習</span></div><div><b>${counts.new}</b><span>未學</span></div></div>
-    ${status}${action}${typeBtn}${daily}</div>
+    ${status}${items.length?'<button class="btn go ghost" data-a="flip-today">翻單字卡</button>':''}${action}${typeBtn}${daily}</div>
   </div></div>${tabbar('home')}`;
 }
 
@@ -1040,10 +1040,12 @@ function viewSet(){
     </div></details>`}</div></div></div>`;
 }
 function viewFlip(){
-  const s=findSet(uiFlag.setId);
+  /* 兩種來源：單字本頁的整本，或首頁「翻單字卡」的今日單字(deck) */
+  const deck=uiFlag.deck?uiFlag.deck.map(itemOf).filter(Boolean):null;
+  const s=deck?{id:'',items:deck}:findSet(uiFlag.setId);
   if(!s||!s.items.length){ view='home'; return viewHome() }
   const i=clamp(uiFlag.fi||0,0,s.items.length-1), it=s.items[i], back=!!uiFlag.ff;
-  return `<div class="wrap"><div class="row between"><button class="btn ghost small" data-a="open-set" data-id="${s.id}">返回</button><span class="note">${i+1}／${s.items.length}</span></div>
+  return `<div class="wrap"><div class="row between">${deck?'<button class="btn ghost small" data-a="home">返回</button>':`<button class="btn ghost small" data-a="open-set" data-id="${s.id}">返回</button>`}<span class="note">${deck?'今日單字・':''}${i+1}／${s.items.length}</span></div>
     <button class="card idx flipcard" data-a="flipcard" aria-label="點一下翻面">
       ${back?`<span class="zh" style="font-size:1.8rem">${esc(it.zh)}</span>${it.ex?`<span class="ex"><span class="en">${esc(it.ex)}</span>${it.exzh?`<span class="cn">${esc(it.exzh)}</span>`:''}</span>`:''}`
             :`<span class="word">${esc(it.w)}</span>`}
@@ -1422,6 +1424,10 @@ app.addEventListener('click',async e=>{
   else if(a==='daily'){ P.daily=clamp(quota().newPer+Number(b.dataset.d),1,30); saveP(); render() }
   else if(a==='practice-set'){ if(buildSession(true,b.dataset.id)) go('session') }
   else if(a==='flip'){ uiFlag={setId:b.dataset.id,fi:0,ff:false}; go('flip') }
+  else if(a==='flip-today'){
+    const fs0=(!hwItems().length&&P.last)?findSet(P.last):null, free0=!!(fs0&&fs0.items.length);
+    const pl0=free0?planSet(fs0):planToday(), all0=free0?fs0.items:hwItems();
+    const ids=pl0.nw.concat(pl0.rev); uiFlag={deck:ids.length?ids:all0.map(x=>x.id),fi:0,ff:false}; go('flip') }
   else if(a==='flipcard'){ uiFlag.ff=!uiFlag.ff; render() }
   else if(a==='fnext'){ uiFlag.fi=(uiFlag.fi||0)+1; uiFlag.ff=false; render() }
   else if(a==='fprev'){ uiFlag.fi=Math.max(0,(uiFlag.fi||0)-1); uiFlag.ff=false; render() }
