@@ -1050,14 +1050,19 @@ function viewFlip(){
 
 /* ---------- 畫面：單字本 / 回報 ---------- */
 function viewBrowse(){
-  return `<div class="wrap fluid">${backBtn()}<h1 class="pgtitle">功課單字</h1>
-  <div class="list grid2">${hwItems().map(it=>{
+  const seen=new Set();
+  const row=it=>{
     const c=P.cards[it.id], sg=stage(c), open=uiFlag.open===it.id;
     return `<div class="item"><button data-a="toggle" data-id="${it.id}" aria-expanded="${open}">
       <span><b>${esc(it.w)}</b> ${posTag(it)} <span class="note">${esc(it.zh)}</span></span>
       <span class="tag ${sg}">${STAGE_ZH[sg]}</span></button>
       ${open?`<div class="detail">${wordCard(it,{extra:`<p class="note">${dueText(c)}</p>`}).replace('card idx stack','stack')}</div>`:''}</div>`;
-  }).join('')}</div></div>`;
+  };
+  /* 照單字本分開顯示；同一個字出現在多本時，只放在第一本 */
+  const groups=hwSets().map(s=>({s,items:s.items.filter(it=>{ if(seen.has(it.id)) return false; seen.add(it.id); return true })})).filter(g=>g.items.length);
+  return `<div class="wrap fluid">${backBtn()}<h1 class="pgtitle">功課單字</h1>
+  ${groups.map(g=>`<section class="stack" style="gap:8px;margin-top:14px"><h2 style="font-size:1.1rem;margin:0">${esc(g.s.name)} <span class="note">${g.items.length} 個字</span></h2>
+  <div class="list grid2">${g.items.map(row).join('')}</div></section>`).join('')}</div>`;
 }
 function makeReport(){
   const t=todayStr(), lg=logOf(t), H=hwItems(), known=H.filter(d=>stage(P.cards[d.id])==='known').length;
