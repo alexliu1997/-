@@ -647,7 +647,7 @@ function viewTypeSetup(){
 function setEntry(){
   const e=S.queue[0];
   S.q=makeQ(e.id,e.kind==='practice'?'review':e.kind);
-  S.phase=(e.kind==='new'&&e.first)?'intro':'ask';
+  S.phase='ask';   /* 不再先看單字卡：認識新字改用首頁「翻單字卡」，這裡直接考試 */
   S.last=null; S.t0=Date.now(); S.hl=0;
   if(S.phase==='ask'&&S.q.type==='listen') setTimeout(()=>{ if(S&&S.phase==='ask'&&S.queue[0]===e) say(itemOf(e.id).w) },250);
 }
